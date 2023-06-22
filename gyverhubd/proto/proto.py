@@ -5,6 +5,8 @@ MessageHandler = typing.Callable[['Request'], None]
 
 
 class Protocol:
+    focused: bool = False
+
     def set_handler_message(self, handler: MessageHandler):
         raise NotImplementedError()
 
@@ -24,4 +26,7 @@ class Request:
     protocol: Protocol
 
     async def respond(self, data: str):
+        raise NotImplementedError()
+
+    def set_focused(self, value: bool):
         raise NotImplementedError()

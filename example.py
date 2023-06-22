@@ -11,4 +11,4 @@ class MyDevice(Device):
 
 
 if __name__ == '__main__':
-    run_server(MyDevice(), protocols=[WSProtocol()])
+    run_server(MyDevice, protocols=[WSProtocol()])

@@ -1,7 +1,15 @@
 import dataclasses
 
+from . import Filesystem, response
+
 
 __version__ = "0.0.1"
+
+_FS_COMMANDS = frozenset((
+    "fsbr", "format", "rename", "delete",
+    "fetch", "fetch_chunk",
+    "upload", "upload_chunk"
+))
 
 
 @dataclasses.dataclass
@@ -19,29 +27,6 @@ class DeviceInfo:
     cpu_freq: str = "0.0 mHz"
 
 
-class Filesystem:
-    size: int
-    used: int
-
-    def get_files_info(self) -> dict[str, int]:
-        pass
-
-    def format(self):
-        pass
-
-    def delete(self, path: str):
-        pass
-
-    def rename(self, path: str, new_path: str):
-        pass
-
-    def get_contents(self, path: str) -> bytes:
-        pass
-
-    def put_contents(self, path: str, data: bytes):
-        pass
-
-
 class Device:
     name: str
     id: str
@@ -49,28 +34,28 @@ class Device:
 
     icon: str = ""
     pin: int = 0  # TODO
-    version: str = ""
+    version: str = "0.0.1"
+    update_info: str = ""
     author: str | None = None
     enable_auto_update: bool = False
     info: DeviceInfo | None = None
-    update_format: str | None = None
     fs: Filesystem | None = None
 
     # Overridable
 
-    def on_focus(self):
+    async def on_focus(self):
         pass
 
-    def on_unfocus(self):
+    async def on_unfocus(self):
         pass
 
-    def on_cli(self, command: str):
+    async def on_cli(self, command: str):
         pass
 
-    def reboot(self):
+    async def reboot(self):
         raise NotImplementedError()
 
-    def ota_update(self, part, url: str | None = None, data: bytes | None = None, check_only: bool = False):
+    async def ota_update(self, part, url: str | None = None, data: bytes | None = None, check_only: bool = False):
         raise NotImplementedError()
 
     def build_ui(self, ui):
@@ -78,173 +63,125 @@ class Device:
 
     # API
 
-    def response(self, typ: str, **kwargs):
-        kwargs.setdefault("id", self.id)
-        kwargs['type'] = typ
-        return kwargs
+    def send(self, typ, **data):
+        self.server.send(typ, **data)
 
-    def __init__(self):
-        self._fetch_temp = None
-        self._upload_data = self._upload_name = None
+    def broadcast(self, typ, **data):
+        self.server.broadcast(typ, **data)
+
+    def send_push(self, text: str, *, broadcast=False):
+        if broadcast:
+            self.broadcast("push", text=text)
+        else:
+            self.send("push", text=text)
+
+    def send_notice(self, text: str, color: int, *, broadcast=False):
+        if broadcast:
+            self.broadcast("notice", text=text, color=color)
+        else:
+            self.send("notice", text=text, color=color)
+
+    def send_alert(self, text: str, *, broadcast=False):
+        if broadcast:
+            self.broadcast("alert", text=text)
+        else:
+            self.send("alert", text=text)
+
+    def send_update(self, name: str, value: str, *, broadcast=False):
+        if broadcast:
+            self.broadcast("update", updates={name: value})
+        else:
+            self.send("update", updates={name: value})
+
+    # internal
+
+    def __init__(self, server):
+        self.server = server
         self._ota_data = self._ota_name = None
 
-    def on_message(self, cmd: str, name: str | None, value: str | None) -> dict | None:
+    async def on_message(self, req, cmd: str, name: str | None) -> dict | None:
         if cmd == "ping":
-            return self.response("OK")
+            return response("OK")
 
         # # UI # #
 
         if cmd == "focus":
-            self.on_focus()
+            req.set_focused(True)
+            await self.on_focus()
             return self._rebuild_ui()
 
         if cmd == "unfocus":
-            self.on_unfocus()
+            req.set_focused(False)
+            await self.on_unfocus()
             return
 
         if cmd == "set":
-            return self._rebuild_ui(name, value)
+            return self._rebuild_ui(name, req.value)
 
         # # INFO # #
 
         if cmd == "info":
             if self.info is None:
-                return self.response("info", info=[__version__, self.version])
+                return response("info", info=[__version__, self.version])
             else:
                 i = self.info
-                return self.response("info", info=[__version__, self.version, i.wifi_mode, i.ssid, i.local_ip, i.ap_ip,
-                                                   i.mac, i.rssi, i.uptime, i.free_heap, i.free_pgm, i.flash_size,
-                                                   i.cpu_freq])
+                return response("info", info=[__version__, self.version, i.wifi_mode, i.ssid, i.local_ip, i.ap_ip,
+                                              i.mac, i.rssi, i.uptime, i.free_heap, i.free_pgm, i.flash_size,
+                                              i.cpu_freq])
 
         if cmd == "reboot":
-            self.reboot()
-            return self.response("OK")
+            await self.reboot()
+            return response("OK")
 
         if cmd == "cli":
-            self.on_cli(value)
-            return self.response("OK")
+            await self.on_cli(req.value)
+            return response("OK")
 
         # # FILESYSTEM # #
 
-        if cmd == "fsbr":
-            # not mounted = fs_error
-            return self._send_fsbr()
+        if cmd in _FS_COMMANDS:
+            if self.fs is None:
+                return response("fs_error")
 
-        if cmd == "format":
-            try:
-                self.fs.format()
-            except Exception:
-                return self.response("ERR")
-            else:
-                return self.response("OK")
-
-        if cmd == "rename":
-            try:
-                self.fs.rename(name, value)
-            except Exception:
-                return self.response("ERR")
-            else:
-                return self._send_fsbr()
-
-        if cmd == "delete":
-            try:
-                self.fs.delete(name)
-            except Exception:
-                return self.response("ERR")
-            else:
-                return self._send_fsbr()
-
-        if cmd == "fetch":
-            try:
-                self._fetch_temp = self.fs.get_contents(name)
-            except Exception:
-                return self.response("fetch_err")
-            else:
-                return self.response("fetch_start")
-
-        if cmd == "fetch_chunk":
-            if self._fetch_temp is None:
-                return self.response("fetch_err")
-
-            self._fetch_temp = None
-            return self.response("fetch_next_chunk", chunk=0, amount=1, data=self._fetch_temp)
-
-        if cmd == "upload":
-            try:
-                self.fs.put_contents(name, b'')
-            except Exception:
-                return self.response("upload_err")
-            else:
-                self._upload_name = name
-                self._upload_data = []
-                return self.response("upload_start")
-
-        if cmd == "upload_chunk":
-            if self._upload_data is None:
-                return self.response("upload_err")
-
-            self._upload_data.append(value)
-
-            if name == 'next':
-                return self.response("upload_next_chunk")
-
-            elif name == 'last':
-                try:
-                    self.fs.put_contents(self._upload_name, b''.join(self._upload_data))
-                except Exception:
-                    return self.response("upload_err")
-                else:
-                    self._upload_name = self._upload_data = None
-                    return self.response("upload_end")
+            return await self.fs.on_message(req, cmd, name)
 
         # # OTA # #
 
         if cmd == "ota_url":
             try:
-                self.ota_update(name, url=value)
+                await self.ota_update(name, url=req.value)
             except Exception:
-                return self.response("ERR")
+                return response("ERR")
             else:
-                return self.response("OK")
+                return response("OK")
 
         if cmd == "ota":
             try:
-                self.ota_update(name, check_only=True)
+                await self.ota_update(name, check_only=True)
             except Exception:
-                return self.response("ota_err")
+                return response("ota_err")
             else:
                 self._ota_name = name
                 self._ota_data = []
-                return self.response("ota_start")
+                return response("ota_start")
 
         if cmd == "ota_chunk":
             if self._ota_data is None:
-                return self.response("ota_err")
+                return response("ota_err")
 
-            self._ota_data.append(value)
+            self._ota_data.append(req.value)
 
             if name == 'next':
-                return self.response("ota_next_chunk")
+                return response("ota_next_chunk")
 
             elif name == 'last':
                 try:
-                    self.ota_update(self._ota_name, data=b''.join(self._ota_data))
+                    await self.ota_update(self._ota_name, data=b''.join(self._ota_data))
                 except Exception:
-                    return self.response("ota_err")
+                    return response("ota_err")
                 else:
                     self._ota_name = self._ota_data = None
-                    return self.response("ota_end")
+                    return response("ota_end")
 
     def _rebuild_ui(self, component=None, value=None):
-        return self.response("ui", controls=[{"type": "button", "name": "button1", "label": "Button 1", "size": 14}])
-
-    def _send_fsbr(self):
-        if self.fs is None:
-            return self.response("fs_error")
-
-        return self.response("fsbr", total=self.fs.size, used=self.fs.used, gzip=self.update_format == "gzip",
-                             fs=self.fs.get_files_info())
-
-
-def _generate_did():
-    raise ValueError("Missing did and generating not supported!")
+        return response("ui", controls=[{"type": "button", "name": "button1", "label": "Button 1", "size": 14}])

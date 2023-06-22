@@ -5,7 +5,7 @@ import sys
 from aiohttp import web
 from websockets.exceptions import ConnectionClosed
 
-from gyverhubd.proto.proto import Protocol
+from gyverhubd.proto.proto import Protocol, MessageHandler, Request
 from websockets import server
 
 
@@ -13,17 +13,36 @@ PYTHON_VERSION = "{}.{}".format(*sys.version_info)
 SERVER_NAME = f"Python/{PYTHON_VERSION} gyverhubd/0.0.1"
 
 
+class WSRequest(Request):
+    def __init__(self, protocol, ws, data):
+        self.protocol: WSProtocol = protocol
+        self._ws = ws
+
+        assert isinstance(data, str) and data and data[-1] == '\0'
+        url, eq, value = data[:-1].partition('=')
+        if not eq:
+            value = None
+
+        self.url = url
+        self.value = value
+
+    async def respond(self, data: str):
+        await self.protocol.send_to(self._ws, data)
+
+
 class WSProtocol(Protocol):
     def __init__(self, host="", http_port=80, ws_port=81):
-        self._server = None
-        self._ws_srv = None
-        self._http_srv = None
         self._host = host
         self._http_port = http_port
         self._ws_port = ws_port
 
-    def bind(self, server):
-        self._server = server
+        self._clients = {}
+        self._handler: MessageHandler = lambda x: None
+        self._ws_srv = None
+        self._http_srv = None
+
+    def set_handler_message(self, handler):
+        self._handler = handler
 
     async def start(self):
         self._ws_srv = await server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=["hub"],
@@ -46,29 +65,24 @@ class WSProtocol(Protocol):
     async def _discover_handler(self, _):
         return web.Response(text="OK", headers={'Access-Control-Allow-Origin': '*'})
 
-    async def _receiver(self, ws, client):
-        while not ws.closed:
-            try:
-                data = await ws.recv()
-            except ConnectionClosed:
-                pass
-            else:
-                assert isinstance(data, str) and data and data[-1] == '\0'
-                url, eq, value = data[:-1].partition('=')
-                if not eq:
-                    value = None
-
-                await client.got_data(url, value)
-
     async def _handle_ws(self, ws: server.WebSocketServerProtocol):
-        client = self._server.connected(ws.remote_address)
-        asyncio.ensure_future(self._receiver(ws, client))
+        self._clients[ws.remote_address] = ws
 
-        while not ws.closed:
-            msg = await client.get_message()
-            try:
-                await ws.send('\n' + json.dumps(msg) + '\n')
-            except ConnectionClosed:
-                pass
+        try:
+            while not ws.closed:
+                try:
+                    data = await ws.recv()
+                except ConnectionClosed:
+                    pass
+                else:
+                    self._handler(WSRequest(self, ws, data))
 
-        client.disconnected(ws.close_code)
+        finally:
+            del self._clients[ws.remote_address]
+
+    async def send(self, data: str):
+        for i in tuple(self._clients.values()):
+            await self.send_to(i, data)
+
+    async def send_to(self, ws, data):
+        await ws.send(data)

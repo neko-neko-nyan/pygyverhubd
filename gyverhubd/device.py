@@ -58,40 +58,40 @@ class Device:
     async def ota_update(self, part, url: str | None = None, data: bytes | None = None, check_only: bool = False):
         raise NotImplementedError()
 
-    def build_ui(self, ui):
+    async def build_ui(self, ui):
         pass
 
     # API
 
-    def send(self, typ, **data):
-        self.server.send(typ, **data)
+    async def send(self, typ, **data):
+        await self.server.send(typ, **data)
 
-    def broadcast(self, typ, **data):
-        self.server.broadcast(typ, **data)
+    async def broadcast(self, typ, **data):
+        await self.server.broadcast(typ, **data)
 
-    def send_push(self, text: str, *, broadcast=False):
+    async def send_push(self, text: str, *, broadcast=False):
         if broadcast:
-            self.broadcast("push", text=text)
+            await self.broadcast("push", text=text)
         else:
-            self.send("push", text=text)
+            await self.send("push", text=text)
 
-    def send_notice(self, text: str, color: int, *, broadcast=False):
+    async def send_notice(self, text: str, color: int, *, broadcast=False):
         if broadcast:
-            self.broadcast("notice", text=text, color=color)
+            await self.broadcast("notice", text=text, color=color)
         else:
-            self.send("notice", text=text, color=color)
+            await self.send("notice", text=text, color=color)
 
-    def send_alert(self, text: str, *, broadcast=False):
+    async def send_alert(self, text: str, *, broadcast=False):
         if broadcast:
-            self.broadcast("alert", text=text)
+            await self.broadcast("alert", text=text)
         else:
-            self.send("alert", text=text)
+            await self.send("alert", text=text)
 
-    def send_update(self, name: str, value: str, *, broadcast=False):
+    async def send_update(self, name: str, value: str, *, broadcast=False):
         if broadcast:
-            self.broadcast("update", updates={name: value})
+            await self.broadcast("update", updates={name: value})
         else:
-            self.send("update", updates={name: value})
+            await self.send("update", updates={name: value})
 
     # internal
 
@@ -108,7 +108,7 @@ class Device:
         if cmd == "focus":
             req.set_focused(True)
             await self.on_focus()
-            return self._rebuild_ui()
+            return await self._rebuild_ui()
 
         if cmd == "unfocus":
             req.set_focused(False)
@@ -116,7 +116,7 @@ class Device:
             return
 
         if cmd == "set":
-            return self._rebuild_ui(name, req.value)
+            return await self._rebuild_ui(name, req.value)
 
         # # INFO # #
 
@@ -183,5 +183,5 @@ class Device:
                     self._ota_name = self._ota_data = None
                     return response("ota_end")
 
-    def _rebuild_ui(self, component=None, value=None):
+    async def _rebuild_ui(self, component=None, value=None):
         return response("ui", controls=[{"type": "button", "name": "button1", "label": "Button 1", "size": 14}])

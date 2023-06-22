@@ -1,7 +1,6 @@
 import dataclasses
 
-from . import Filesystem, response
-
+from . import Filesystem, response, Builder
 
 __version__ = "0.0.1"
 
@@ -184,4 +183,10 @@ class Device:
                     return response("ota_end")
 
     async def _rebuild_ui(self, component=None, value=None):
-        return response("ui", controls=[{"type": "button", "name": "button1", "label": "Button 1", "size": 14}])
+        if component is not None:
+            builder = Builder(component, value)
+            await self.build_ui(builder)
+
+        builder = Builder()
+        await self.build_ui(builder)
+        return response("ui", controls=builder._components)

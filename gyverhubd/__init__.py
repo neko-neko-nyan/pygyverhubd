@@ -1,4 +1,5 @@
 from .utils import response, parse_url, generate_did
+from .ui import Builder
 from .proto import Protocol, Request, MessageHandler
 from .filesystem import Filesystem
 from .device import Device, DeviceInfo

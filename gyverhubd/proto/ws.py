@@ -54,8 +54,11 @@ class WSProtocol(Protocol):
                 pass
             else:
                 assert isinstance(data, str) and data and data[-1] == '\0'
-                data = data[:-1].split('/', maxsplit=4)
-                await client.got_data(data)
+                url, eq, value = data[:-1].partition('=')
+                if not eq:
+                    value = None
+
+                await client.got_data(url, value)
 
     async def _handle_ws(self, ws: server.WebSocketServerProtocol):
         client = self._server.connected(ws.remote_address)

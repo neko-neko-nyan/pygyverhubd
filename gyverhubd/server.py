@@ -1,9 +1,27 @@
 import asyncio
 
-__version__ = "0.0.1"
-
 from gyverhubd.device import Device
 from gyverhubd.proto.proto import Protocol
+
+
+__version__ = "0.0.1"
+
+
+def parse_url(url: str) -> tuple[str, str | None, str | None, str | None, str | None]:
+    prefix, *url = url.split('/', maxsplit=4)
+    cmd = clid = did = name = None
+
+    if url:
+        did, *url = url
+    if len(url) == 1:
+        print(prefix, url)
+        raise ValueError("Invalid data!")
+        # return prefix, clid, did, cmd, name
+    if url:
+        clid, cmd, *url = url
+    if url:
+        name, = url
+    return prefix, clid, did, cmd, name
 
 
 class Connection:
@@ -13,34 +31,28 @@ class Connection:
         self._clid = None
         self._msgq = asyncio.Queue()
 
-        print("+++", self._client)
+        print(f"+++ {client[0]}:{client[1]}")
 
-    async def got_data(self, data):
-        group = data[0]
-        clid = did = name = value = None
-        cmd = 'discover'
-
-        if len(data) >= 3:
-            did = data[1]
-            clid = data[2]
-
-            if len(data) >= 4:
-                cmd = data[3]
-
-                if len(data) == 5:
-                    name, _, value = data[4].partition('/')
+    async def got_data(self, url, value):
+        prefix, clid, did, cmd, name = parse_url(url)
 
         if self._clid is None:
             self._clid = clid
 
+        if self._server.device.prefix != prefix:
+            return
+
         dev = self._server.device
-        print(">>>",  cmd, name, value)
 
-        if cmd == "discover":
-            if self._server.device.prefix == group and (did is None or dev.id == did):
-                await self.send("discover", version=dev.version)
+        print(f">>> {cmd!r} {name!r}={value!r} ({clid!r} -> {did!r})")
 
-        elif cmd == "ping":
+        if cmd is None and (did is None or dev.id == did):
+            await self.send("discover", name=dev.name, icon=dev.icon, version=dev.version, PIN=dev.pin)
+
+        if cmd is None or did != dev.id:
+            return
+
+        if cmd == "ping":
             await self.send("OK")
 
         # # UI # #
@@ -53,16 +65,7 @@ class Connection:
             dev.on_unfocus()
 
         elif cmd == "set":
-            if dev.ui is None:
-                await self.send("OK")
-            else:
-                await self._rebuild_ui(dev, "set", name, value)
-
-        elif cmd == "click":
-            if dev.ui is None:
-                await self.send("OK")
-            else:
-                await self._rebuild_ui(dev, "click", name, value)
+            await self._rebuild_ui(dev, name, value)
 
         # # INFO # #
 
@@ -79,7 +82,7 @@ class Connection:
             await self.send("OK")
 
         elif cmd == "cli":
-            dev.handle_cli(value)
+            dev.on_cli(value)
             await self.send("OK")
 
         # # FILESYSTEM # #
@@ -193,11 +196,12 @@ class Connection:
                         self._ota_name = self._ota_data = None
                         await self.send("ota_end")
 
-    async def _rebuild_ui(self, dev, action=None, component=None, value=None):
+    async def _rebuild_ui(self, dev, component=None, value=None):
         await self.send("ui", controls=[{"type": "button", "name": "button1", "label": "Button 1", "size": 14}])
 
     async def _send_fsbr(self, dev):
-        await self.send("fsbr", total=dev.fs.size, used=dev.fs.used, gzip=dev.atomic_updates, fs=dev.fs.get_files_info())
+        await self.send("fsbr", total=dev.fs.size, used=dev.fs.used, gzip=dev.update_format == "gzip",
+                        fs=dev.fs.get_files_info())
 
     async def send_push(self, text: str):
         await self.send("push", text=text)
@@ -212,24 +216,25 @@ class Connection:
         await self.send("update", updates={name: value})
 
     async def send(self, typ, **data):
+        print(f"<<< {typ} {data}")
         data['type'] = typ
         data['id'] = self._server.device.id
         await self._msgq.put(data)
 
     def disconnected(self, code):
-        print("---", self._client, code)
-        pass
+        print(f"--- {self._client[0]}:{self._client[1]} ({code})")
 
     async def get_message(self):
-        res = await self._msgq.get()
-        print("<<<", res)
-        return res
+        return await self._msgq.get()
 
 
 class Server:
-    def __init__(self, device: Device):
+    def __init__(self, device: Device, *, protocols: list[Protocol] = ()):
         self.device = device
         self._protocols = []
+
+        for i in protocols:
+            self.add_protocol(i)
 
     def add_protocol(self, proto: Protocol):
         self._protocols.append(proto)
@@ -245,3 +250,16 @@ class Server:
 
     def connected(self, client: tuple[str, int]) -> Connection:
         return Connection(self, client)
+
+
+async def run_server_async(*args, **kwargs):
+    server = Server(*args, **kwargs)
+    await server.start()
+    try:
+        await asyncio.Future()
+    finally:
+        await server.stop()
+
+
+def run_server(*args, **kwargs):
+    asyncio.run(run_server_async(*args, **kwargs))

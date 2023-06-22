@@ -40,34 +40,18 @@ class Filesystem:
 
 
 class Device:
-    def __init__(self, prefix: str = "MyDevices", name: str = "", icon: str = "", did: int | None = None):
-        self._prefix = prefix
-        self._name = name
-        self._icon = icon
-        self._id = _generate_did() if did is None else str(did)
+    name: str
+    id: str
+    prefix: str = "MyDevices"
 
-        self.version: str | None = "0.0.1"
-        self.pin: int = 0
-        self.atomic_updates: bool = True
-        self.info: DeviceInfo | None = None
-        self.fs: Filesystem | None = None
-        self.ui = None
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def icon(self):
-        return self._icon
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def prefix(self):
-        return self._prefix
+    icon: str = ""
+    pin: int = 0  # TODO
+    version: str = ""
+    author: str | None = None
+    enable_auto_update: bool = False
+    info: DeviceInfo | None = None
+    update_format: str | None = None
+    fs: Filesystem | None = None
 
     def on_focus(self):
         pass
@@ -75,7 +59,7 @@ class Device:
     def on_unfocus(self):
         pass
 
-    def handle_cli(self, command: str):
+    def on_cli(self, command: str):
         pass
 
     def reboot(self):
@@ -83,6 +67,9 @@ class Device:
 
     def ota_update(self, part, url: str | None = None, data: bytes | None = None, check_only: bool = False):
         raise NotImplementedError()
+
+    def build_ui(self, ui):
+        pass
 
 
 def _generate_did():

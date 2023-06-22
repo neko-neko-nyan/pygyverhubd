@@ -8,6 +8,7 @@ from gyverhubd.proto.proto import Protocol, MessageHandler, Request
 
 PYTHON_VERSION = "{}.{}".format(*sys.version_info)
 SERVER_NAME = f"Python/{PYTHON_VERSION} gyverhubd/0.0.1"
+_FOCUSED_PROP = f'__{__name__.replace(".", "")}_focused'
 
 
 class WSRequest(Request):
@@ -27,7 +28,7 @@ class WSRequest(Request):
         await self.protocol.send_to(self._ws, data)
 
     def set_focused(self, value: bool):
-        self._ws.__focused = value
+        setattr(self._ws, _FOCUSED_PROP, value)
 
 
 class WSProtocol(Protocol):
@@ -43,7 +44,7 @@ class WSProtocol(Protocol):
 
     @property
     def focused(self) -> bool:
-        return any((i.__focused for i in self._clients.values()))
+        return any((getattr(i, _FOCUSED_PROP, False) for i in self._clients.values()))
 
     def set_handler_message(self, handler):
         self._handler = handler
@@ -71,7 +72,6 @@ class WSProtocol(Protocol):
 
     async def _handle_ws(self, ws: server.WebSocketServerProtocol):
         self._clients[ws.remote_address] = ws
-        ws.__focused = False
 
         try:
             while not ws.closed:

@@ -60,6 +60,26 @@ class Device:
     async def build_ui(self, ui):
         pass
 
+    async def on_discover(self) -> dict:
+        return dict(name=self.name, icon=self.icon, version=self.update_info, PIN=self.pin)
+
+    async def on_ui_update(self):
+        builder = Builder()
+        await self.build_ui(builder)
+        return response("ui", controls=builder._components)
+
+    async def on_ui_event(self, name: str, value: str):
+        builder = Builder(name, value)
+        await self.build_ui(builder)
+
+    async def on_request_info(self) -> dict:
+        if self.info is None:
+            return dict(info=[__version__, self.version])
+        else:
+            i = self.info
+            return dict(info=[__version__, self.version, i.wifi_mode, i.ssid, i.local_ip, i.ap_ip, i.mac,
+                              i.rssi, i.uptime, i.free_heap, i.free_pgm, i.flash_size, i.cpu_freq])
+
     # API
 
     async def send(self, typ, **data):
@@ -98,16 +118,18 @@ class Device:
         self.server = server
         self._ota_data = self._ota_name = None
 
-    async def on_message(self, req, cmd: str, name: str | None) -> dict | None:
+    async def on_message(self, req, cmd: str, name: str | None):
         if cmd == "ping":
-            return response("OK")
+            await req.respond(response("OK"))
+            return
 
         # # UI # #
 
         if cmd == "focus":
             req.set_focused(True)
             await self.on_focus()
-            return await self._rebuild_ui()
+            await req.respond(await self.on_ui_update())
+            return
 
         if cmd == "unfocus":
             req.set_focused(False)
@@ -115,26 +137,26 @@ class Device:
             return
 
         if cmd == "set":
-            return await self._rebuild_ui(name, req.value)
+            await self.on_ui_event(name, req.value)
+            await req.respond(await self.on_ui_update())
+            return
 
         # # INFO # #
 
         if cmd == "info":
-            if self.info is None:
-                return response("info", info=[__version__, self.version])
-            else:
-                i = self.info
-                return response("info", info=[__version__, self.version, i.wifi_mode, i.ssid, i.local_ip, i.ap_ip,
-                                              i.mac, i.rssi, i.uptime, i.free_heap, i.free_pgm, i.flash_size,
-                                              i.cpu_freq])
+            info = await self.on_request_info()
+            await req.respond(response("info", **info))
+            return
 
         if cmd == "reboot":
             await self.reboot()
-            return response("OK")
+            await req.respond(response("OK"))
+            return
 
         if cmd == "cli":
             await self.on_cli(req.value)
-            return response("OK")
+            await req.respond(response("OK"))
+            return
 
         # # FILESYSTEM # #
 
@@ -150,43 +172,38 @@ class Device:
             try:
                 await self.ota_update(name, url=req.value)
             except Exception:
-                return response("ERR")
+                await req.respond(response("ota_url_err"))
             else:
-                return response("OK")
+                await req.respond(response("ota_url_ok"))
+            return
 
         if cmd == "ota":
             try:
                 await self.ota_update(name, check_only=True)
             except Exception:
-                return response("ota_err")
+                await req.respond(response("ota_err"))
             else:
                 self._ota_name = name
                 self._ota_data = []
-                return response("ota_start")
+                await req.respond(response("ota_start"))
+            return
 
         if cmd == "ota_chunk":
             if self._ota_data is None:
-                return response("ota_err")
+                await req.respond(response("ota_err"))
+                return
 
             self._ota_data.append(req.value)
 
             if name == 'next':
-                return response("ota_next_chunk")
+                await req.respond(response("ota_next_chunk"))
+                return
 
-            elif name == 'last':
-                try:
-                    await self.ota_update(self._ota_name, data=b''.join(self._ota_data))
-                except Exception:
-                    return response("ota_err")
-                else:
-                    self._ota_name = self._ota_data = None
-                    return response("ota_end")
-
-    async def _rebuild_ui(self, component=None, value=None):
-        if component is not None:
-            builder = Builder(component, value)
-            await self.build_ui(builder)
-
-        builder = Builder()
-        await self.build_ui(builder)
-        return response("ui", controls=builder._components)
+            try:
+                await self.ota_update(self._ota_name, data=b''.join(self._ota_data))
+            except Exception:
+                await req.respond(response("ota_err"))
+            else:
+                self._ota_name = self._ota_data = None
+                await req.respond(response("ota_end"))
+            return

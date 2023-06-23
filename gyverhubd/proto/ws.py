@@ -24,7 +24,7 @@ class WSRequest(Request):
         self.url = url
         self.value = value
 
-    async def respond(self, data: str):
+    async def respond(self, data: dict):
         await self.protocol.send_to(self._ws, data)
 
     def set_focused(self, value: bool):
@@ -85,9 +85,11 @@ class WSProtocol(Protocol):
         finally:
             del self._clients[ws.remote_address]
 
-    async def send(self, data: str):
+    async def send(self, data: dict):
         for i in tuple(self._clients.values()):
             await self.send_to(i, data)
 
-    async def send_to(self, ws, data):
+    async def send_to(self, ws, data: dict):
+        data['id'] = self.device_id
+        data = '\n' + json.dumps(data) + '\n'
         await ws.send(data)

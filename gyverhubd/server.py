@@ -15,6 +15,7 @@ class Server:
     def add_protocol(self, proto: Protocol):
         self._protocols.append(proto)
         proto.set_handler_message(self._on_message)
+        proto.device_id = self.device.id
 
     async def start(self):
         for i in self._protocols:
@@ -36,25 +37,20 @@ class Server:
         print(f">>> {cmd!r} {name!r}={req.value!r}")
 
         dev = self.device
-        if cmd is None and (did is None or dev.id == did):
-            res = dict(type="discover", name=dev.name, icon=dev.icon, version=dev.update_info, PIN=dev.pin)
-
-        elif cmd is None or did != dev.id:
+        if cmd is None:
+            if did is None or dev.id == did:
+                data = await dev.on_discover()
+                if data is not None:
+                    data['type'] = 'discover'
+                    asyncio.ensure_future(req.respond(data))
             return
 
-        else:
-            res = await dev.on_message(req, cmd, name)
-
-        if res is not None:
-            res.setdefault('id', dev.id)
-            res = '\n' + json.dumps(res) + '\n'
-            asyncio.ensure_future(req.respond(res))
+        if did == dev.id:
+            await dev.on_message(req, cmd, name)
 
     async def send(self, typ, **data):
         print(f"<<< {typ} {data}")
         data['type'] = typ
-        data['id'] = self.device.id
-        data = '\n' + json.dumps(data) + '\n'
 
         for i in self._protocols:
             if i.focused:
@@ -63,8 +59,6 @@ class Server:
     async def broadcast(self, typ, **data):
         print(f"<<< {typ} {data}")
         data['type'] = typ
-        data['id'] = self.device.id
-        data = '\n' + json.dumps(data) + '\n'
 
         for i in self._protocols:
             await i.send(data)

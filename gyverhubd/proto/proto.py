@@ -6,6 +6,7 @@ MessageHandler = typing.Callable[['Request'], None]
 
 class Protocol:
     focused: bool = False
+    device_id: str | None = None
 
     def set_handler_message(self, handler: MessageHandler):
         raise NotImplementedError()

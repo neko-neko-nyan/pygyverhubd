@@ -5,7 +5,7 @@
 
 На данный момент работает только WebSocket
 
-Текущая версия клиента - https://github.com/GyverLibs/GyverHub/tree/1bd6e7977112af00f4e246fe85101e125ef2e303
+Текущая версия клиента - https://github.com/GyverLibs/GyverHub/tree/90f29e638044aaf8f1ec751ac6518434dcd0de02
 
 Пример использования [здесь](example.py)
 

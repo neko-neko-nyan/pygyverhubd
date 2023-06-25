@@ -1,4 +1,4 @@
-from .utils import response, parse_url, generate_did
+from .utils import response, parse_url, generate_did, Color
 from .ui import Builder
 from .proto import Protocol, Request, MessageHandler
 from .filesystem import Filesystem

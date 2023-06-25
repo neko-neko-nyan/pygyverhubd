@@ -162,9 +162,10 @@ class Device:
 
         if cmd in _FS_COMMANDS:
             if self.fs is None:
-                return response("fs_error")
-
-            return await self.fs.on_message(req, cmd, name)
+                await req.respond(response("fs_error"))
+            else:
+                await req.respond(await self.fs.on_message(req, cmd, name))
+            return
 
         # # OTA # #
 

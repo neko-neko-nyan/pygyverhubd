@@ -1,4 +1,30 @@
+import enum
 import typing
+
+
+class Module(enum.IntFlag):
+    INFO = 1 << 0
+    FSBR = 1 << 1
+    FORMAT = 1 << 2
+
+    DOWNLOAD = 1 << 3
+    UPLOAD = 1 << 4
+
+    OTA = 1 << 5
+    OTA_URL = 1 << 6
+
+    REBOOT = 1 << 7
+
+    SET = 1 << 8
+    READ = 1 << 9
+
+    DELETE = 1 << 10
+    RENAME = 1 << 11
+
+    SERIAL = 1 << 12
+    BT = 1 << 13
+    WS = 1 << 14
+    MQTT = 1 << 15
 
 
 class Color(int):

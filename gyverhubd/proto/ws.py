@@ -56,6 +56,7 @@ class WSProtocol(Protocol):
 
         app = web.Application()
         app.router.add_route('GET', '/hub_discover_all', self._discover_handler)
+        app.router.add_route('GET', '/hub_http_cfg', self._config_handler)
 
         runner = web.AppRunner(app)
         await runner.setup()
@@ -70,6 +71,10 @@ class WSProtocol(Protocol):
 
     async def _discover_handler(self, _):
         return web.Response(text="OK", headers={'Access-Control-Allow-Origin': '*'})
+
+    async def _config_handler(self, _):
+        config = dict(upload="0", download="0", ota="0")
+        return web.Response(text=json.dumps(config), headers={'Access-Control-Allow-Origin': '*'})
 
     async def _handle_ws(self, ws: server.WebSocketServerProtocol):
         self._clients[ws.remote_address] = ws

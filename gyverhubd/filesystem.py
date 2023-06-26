@@ -4,7 +4,6 @@ from . import response
 class Filesystem:
     size: int
     used: int
-    update_format: str = "bin"
 
     # Overridable
 
@@ -105,5 +104,4 @@ class Filesystem:
                     return response("upload_end")
 
     def _send_fsbr(self):
-        return response("fsbr", total=self.size, used=self.used, gzip=self.update_format == "gzip",
-                        fs=self.get_files_info())
+        return response("fsbr", total=self.size, used=self.used, fs=self.get_files_info())

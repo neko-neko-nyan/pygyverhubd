@@ -5,7 +5,8 @@
 
 На данный момент работает только WebSocket
 
-Текущая версия клиента - https://github.com/GyverLibs/GyverHub/tree/90f29e638044aaf8f1ec751ac6518434dcd0de02
+Текущая версия клиента - https://github.com/GyverLibs/GyverHub/tree/7dbb3ae82193ef4aa6c43be3a936ae97554a0594
+(кроме передачи файлов по http)
 
 Пример использования [здесь](examples/components_ui.py)
 

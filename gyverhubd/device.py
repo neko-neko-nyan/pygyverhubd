@@ -1,6 +1,6 @@
-import dataclasses
+from functools import cached_property
 
-from . import Filesystem, response, DeviceUi
+from . import Filesystem, response, DeviceUi, Module, DeviceInfo
 
 __version__ = "0.0.1"
 
@@ -9,21 +9,6 @@ _FS_COMMANDS = frozenset((
     "fetch", "fetch_chunk",
     "upload", "upload_chunk"
 ))
-
-
-@dataclasses.dataclass
-class DeviceInfo:
-    wifi_mode: str = "None"
-    ssid: str = "-"
-    local_ip: str = "0.0.0.0"
-    ap_ip: str = "0.0.0.0"
-    mac: str = "00:00:00:00:00:00"
-    rssi: str = "-0 dBm"
-    uptime: str = "00:00:00"
-    free_heap: str = "0 b"
-    free_pgm: str = "0 b"
-    flash_size: str = "0 b"
-    cpu_freq: str = "0.0 mHz"
 
 
 class Device:
@@ -35,6 +20,7 @@ class Device:
     pin: int = 0  # TODO
     version: str = "0.0.1"
     update_info: str = ""
+    update_format: str = "bin"
     author: str | None = None
     enable_auto_update: bool = False
     info: DeviceInfo | None = None
@@ -59,15 +45,8 @@ class Device:
         raise NotImplementedError()
 
     async def on_discover(self) -> dict:
-        return dict(name=self.name, icon=self.icon, version=self.update_info, PIN=self.pin)
-
-    async def on_request_info(self) -> dict:
-        if self.info is None:
-            return dict(info=[__version__, self.version])
-        else:
-            i = self.info
-            return dict(info=[__version__, self.version, i.wifi_mode, i.ssid, i.local_ip, i.ap_ip, i.mac,
-                              i.rssi, i.uptime, i.free_heap, i.free_pgm, i.flash_size, i.cpu_freq])
+        return dict(name=self.name, icon=self.icon, version=self.update_info, PIN=self.pin, ota_t=self.update_format,
+                    max_upl=0xFFFF_FFFF_FFFF_FFFF, modules=self._disabled_modules)
 
     # API
 
@@ -102,6 +81,36 @@ class Device:
             await self.send("update", updates={name: value})
 
     # internal
+
+    @cached_property
+    def _disabled_modules(self):
+        value = 0
+        if self.info is None:
+            value |= Module.INFO
+        if type(self).reboot == Device.reboot:  # not overrided
+            value |= Module.REBOOT
+        if type(self).ota_update == Device.ota_update:  # not overrided
+            value |= Module.OTA | Module.OTA_URL
+        if self.ui is None:
+            value |= Module.SET
+        if self.fs is None:
+            value |= Module.FSBR | Module.FORMAT | Module.RENAME | Module.DELETE | Module.DOWNLOAD | Module.UPLOAD
+        else:
+            fst = type(self.fs)
+            if fst.get_files_info == Filesystem.get_files_info:
+                value |= Module.FSBR
+            if fst.format == Filesystem.format:
+                value |= Module.FORMAT
+            if fst.rename == Filesystem.rename:
+                value |= Module.RENAME
+            if fst.delete == Filesystem.delete:
+                value |= Module.DELETE
+            if fst.get_contents == Filesystem.get_contents:
+                value |= Module.DOWNLOAD
+            if fst.put_contents == Filesystem.put_contents:
+                value |= Module.UPLOAD
+
+        return value
 
     def __init__(self, server):
         self.server = server
@@ -138,8 +147,18 @@ class Device:
         # # INFO # #
 
         if cmd == "info":
-            info = await self.on_request_info()
-            await req.respond(response("info", **info))
+            if self.info is None:
+                info = dict(versions=dict())
+            else:
+                info = self.info.to_json()
+
+            info = dict(info)
+            info['version'] = dict(info.get('version', {}))
+            info['version']['Library'] = __version__
+            if self.version:
+                info['version'].setdefault('Firmware', self.version)
+
+            await req.respond(response("info", info=info))
             return
 
         if cmd == "reboot":

@@ -1,6 +1,6 @@
 import dataclasses
 
-from . import Filesystem, response, Builder
+from . import Filesystem, response, DeviceUi
 
 __version__ = "0.0.1"
 
@@ -39,6 +39,7 @@ class Device:
     enable_auto_update: bool = False
     info: DeviceInfo | None = None
     fs: Filesystem | None = None
+    ui: DeviceUi | None = None
 
     # Overridable
 
@@ -57,20 +58,8 @@ class Device:
     async def ota_update(self, part, url: str | None = None, data: bytes | None = None, check_only: bool = False):
         raise NotImplementedError()
 
-    async def build_ui(self, ui):
-        pass
-
     async def on_discover(self) -> dict:
         return dict(name=self.name, icon=self.icon, version=self.update_info, PIN=self.pin)
-
-    async def on_ui_update(self):
-        builder = Builder()
-        await self.build_ui(builder)
-        return response("ui", controls=builder._components)
-
-    async def on_ui_event(self, name: str, value: str):
-        builder = Builder(name, value)
-        await self.build_ui(builder)
 
     async def on_request_info(self) -> dict:
         if self.info is None:
@@ -128,7 +117,10 @@ class Device:
         if cmd == "focus":
             req.set_focused(True)
             await self.on_focus()
-            await req.respond(await self.on_ui_update())
+            if self.ui is None:
+                await req.respond(response("ui", controls=[]))
+            else:
+                await req.respond(await self.ui.on_update())
             return
 
         if cmd == "unfocus":
@@ -137,8 +129,10 @@ class Device:
             return
 
         if cmd == "set":
-            await self.on_ui_event(name, req.value)
-            await req.respond(await self.on_ui_update())
+            if self.ui is None:
+                await req.respond(response("OK"))
+            else:
+                await req.respond(await self.ui.on_ui_event(name, req.value))
             return
 
         # # INFO # #

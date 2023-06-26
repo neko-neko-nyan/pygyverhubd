@@ -7,7 +7,7 @@
 
 Текущая версия клиента - https://github.com/GyverLibs/GyverHub/tree/90f29e638044aaf8f1ec751ac6518434dcd0de02
 
-Пример использования [здесь](example.py)
+Пример использования [здесь](examples/components_ui.py)
 
 # Текущий прогресс
 ## Сеть

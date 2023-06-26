@@ -1,7 +1,8 @@
 import enum
 import itertools
 
-from gyverhubd import Color
+from gyverhubd import Color, response
+from . import DeviceUi
 
 
 class BuildType(enum.Enum):
@@ -10,12 +11,12 @@ class BuildType(enum.Enum):
 
 
 class Builder:
-    def __init__(self, name=None, value=None):
+    def __init__(self, components, name=None, value=None):
         self._build_type = BuildType.LAYOUT if name is None else BuildType.ACTION
         self._component_name = name
         self._value = value
 
-        self._components = []
+        self._components = components
         self._new_name = (f"u{i}" for i in itertools.count())
 
     def _ensure_name(self, name: str | None) -> str:
@@ -223,3 +224,31 @@ class Builder:
             self._components.append(dict(type="prompt", name=name, label=label, value=value))
         elif self._component_name == name:
             return self._value
+
+
+class BuilderUiWrapper(DeviceUi):
+    def __init__(self, fn, device=None):
+        self._fn = fn
+        self._device = device
+
+    def __get__(self, instance, owner=None):
+        if self._device is None:
+            return type(self)(self._fn, instance)
+        return self
+
+    async def build_ui(self, builder: Builder):
+        return await self._fn(self._device, builder)
+
+    async def on_update(self):
+        components = []
+        builder = Builder(components)
+        await self.build_ui(builder)
+        return response("ui", controls=components)
+
+    async def on_ui_event(self, name: str, value: str):
+        builder = Builder([], name, value)
+        await self.build_ui(builder)
+        return await self.on_update()
+
+
+ui_builder = BuilderUiWrapper

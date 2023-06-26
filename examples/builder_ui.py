@@ -1,6 +1,11 @@
 import random
+import sys
+import os
 
-from gyverhubd import Device, run_server, Builder, Color
+sys.path.append(os.path.dirname(__file__))
+
+
+from gyverhubd import Device, run_server, Builder, Color, ui_builder
 from gyverhubd.proto.ws import WSProtocol
 
 
@@ -8,7 +13,8 @@ class MyDevice(Device):
     name = "Test"
     id = '12345'
 
-    async def build_ui(self, ui: Builder):
+    @ui_builder
+    async def ui(self, ui: Builder):
         ui.tabs("", "0", "Tab 1,MY TAB,tab 2,tab 3,TAB 4")
 
         ui.button("Button 1")

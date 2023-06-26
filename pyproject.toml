@@ -1,0 +1,34 @@
+[project]
+name = "pygyverhubd"
+description = "Python implementation of GyverHub device"
+license = {file = "LICENSE"}
+authors = [
+    {name = "NekoNekoNyan", email="me@neko-dev.ru"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "aiohttp~=3.8.4",
+    "websockets~=11.0.3"
+]
+dynamic = ["version", "readme"]
+
+[project.urls]
+"Homepage" = "https://github.com/neko-neko-nyan/pygyverhubd"
+"Bug Tracker" = "https://github.com/neko-neko-nyan/pygyverhubd/issues"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["gyverhubd*"]
+namespaces = false
+
+[tool.setuptools.dynamic]
+version = {attr = "gyverhubd.__version__"}
+readme = {file = "README.md", content-type = "text/markdown"}

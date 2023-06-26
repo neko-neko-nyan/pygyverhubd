@@ -5,5 +5,5 @@ from .ui import Builder, DeviceUi, ui_builder
 from .proto import Protocol, Request, MessageHandler
 from .filesystem import Filesystem
 from .info import DeviceInfo
-from .device import Device
+from .device import Device, __version__
 from .server import Server, run_server, run_server_async

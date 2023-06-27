@@ -1,7 +1,8 @@
 import asyncio
-import json
 
 from . import Device, Protocol, Request, parse_url
+
+__all__ = ["Server", "run_server_async", "run_server"]
 
 
 class Server:
@@ -34,8 +35,6 @@ class Server:
         if self.device.prefix != prefix:
             return
 
-        print(f">>> {cmd!r} {name!r}={req.value!r}")
-
         dev = self.device
         if cmd is None:
             if did is None or dev.id == did:
@@ -49,7 +48,6 @@ class Server:
             await dev.on_message(req, cmd, name)
 
     async def send(self, typ, **data):
-        print(f"<<< {typ} {data}")
         data['type'] = typ
 
         for i in self._protocols:
@@ -57,7 +55,6 @@ class Server:
                 await i.send(data)
 
     async def broadcast(self, typ, **data):
-        print(f"<<< {typ} {data}")
         data['type'] = typ
 
         for i in self._protocols:

@@ -1,6 +1,8 @@
 import enum
 import typing
 
+__all__ = ["Component", "ChangeType"]
+
 
 class ChangeType(enum.Enum):
     NO = enum.auto()

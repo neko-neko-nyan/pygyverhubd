@@ -1,5 +1,6 @@
 import typing
 
+__all__ = ["MessageHandler", "Protocol", "Request"]
 
 MessageHandler = typing.Callable[['Request'], None]
 
@@ -11,7 +12,7 @@ class Protocol:
     def set_handler_message(self, handler: MessageHandler):
         raise NotImplementedError()
 
-    async def send(self, data: str):
+    async def send(self, data: dict):
         raise NotImplementedError()
 
     async def start(self):
@@ -26,7 +27,7 @@ class Request:
     value: str | None
     protocol: Protocol
 
-    async def respond(self, data: str):
+    async def respond(self, data: dict):
         raise NotImplementedError()
 
     def set_focused(self, value: bool):

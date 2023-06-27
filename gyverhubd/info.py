@@ -2,6 +2,8 @@ import collections
 import datetime
 import typing
 
+__all__ = ["DeviceInfo"]
+
 
 class DeviceInfo:
     __slots__ = ('_data', '_handlers', '_device')
@@ -53,6 +55,7 @@ class DeviceInfo:
         return self.set('memory', name, value)
 
     def uptime(self, value: datetime.timedelta) -> typing.Self:
+        # noinspection PyTypeChecker
         return self.set('system', 'Uptime', value.seconds)
 
     def set_handler(self, group: str, fn: callable):
@@ -62,9 +65,5 @@ class DeviceInfo:
         def _decorator(fn):
             self.set_handler(group, fn)
             return fn
-        return _decorator
 
-    # version: dict[str, str] = dataclasses.field(default_factory=dict)  # Library, Firmware
-    # net: dict[str, str] = dataclasses.field(default_factory=dict)  # Mode, MAC, SSID, RSSI, IP
-    # memory: dict[str, tuple[int, int] | str] = dataclasses.field(default_factory=dict)  # RAM Flash Sketch
-    # system: dict[str, str] = dataclasses.field(default_factory=dict)  # Uptime (int), Model, CPU_Mhz Flash_chip
+        return _decorator

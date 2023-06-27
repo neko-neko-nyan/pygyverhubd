@@ -1,5 +1,7 @@
 from . import response
 
+__all__ = ["Filesystem"]
+
 
 class Filesystem:
     size: int

@@ -2,14 +2,15 @@ import json
 import sys
 
 from aiohttp import web
-from websockets import server
+from websockets import server as ws_server
 from websockets.exceptions import ConnectionClosed
 
-from gyverhubd.proto.proto import Protocol, MessageHandler, Request
+from . import Protocol, MessageHandler, Request
+from .. import __version__
 
-PYTHON_VERSION = "{}.{}".format(*sys.version_info)
-SERVER_NAME = f"Python/{PYTHON_VERSION} gyverhubd/0.0.1"
-_FOCUSED_PROP = f'__{__name__.replace(".", "")}_focused'
+
+SERVER_NAME = f"Python/{sys.version.partition(' ')[0]} gyverhubd/{__version__}"
+_FOCUSED_PROP = f'__focused'
 
 
 class WSRequest(Request):
@@ -51,10 +52,11 @@ class WSProtocol(Protocol):
         self._handler = handler
 
     async def start(self):
-        self._ws_srv = await server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=["hub"],
-                                          server_header=SERVER_NAME)
+        self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=["hub"],
+                                             server_header=SERVER_NAME)
 
         app = web.Application()
+        app.on_response_prepare.append(self._on_http_end)
         app.router.add_route('GET', '/hub_discover_all', self._discover_handler)
         app.router.add_route('GET', '/hub_http_cfg', self._config_handler)
 
@@ -69,14 +71,17 @@ class WSProtocol(Protocol):
         self._ws_srv.close()
         await self._ws_srv.wait_closed()
 
+    async def _on_http_end(self, _, res):
+        res.headers['Server'] = SERVER_NAME
+
     async def _discover_handler(self, _):
         return web.Response(text="OK", headers={'Access-Control-Allow-Origin': '*'})
 
     async def _config_handler(self, _):
-        config = dict(upload="0", download="0", ota="0")
+        config = dict(upload=0, download=0, ota=0, path="/")
         return web.Response(text=json.dumps(config), headers={'Access-Control-Allow-Origin': '*'})
 
-    async def _handle_ws(self, ws: server.WebSocketServerProtocol):
+    async def _handle_ws(self, ws: ws_server.WebSocketServerProtocol):
         self._clients[ws.remote_address] = ws
 
         try:

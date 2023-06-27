@@ -1,7 +1,6 @@
 from functools import cached_property
 
-from . import Filesystem, response, DeviceUi, Module, DeviceInfo
-from ._version import __version__
+from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__
 
 
 _FS_COMMANDS = frozenset((

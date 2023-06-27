@@ -1,8 +1,8 @@
 from functools import cached_property
 
 from . import Filesystem, response, DeviceUi, Module, DeviceInfo
+from ._version import __version__
 
-__version__ = "0.0.1"
 
 _FS_COMMANDS = frozenset((
     "fsbr", "format", "rename", "delete",

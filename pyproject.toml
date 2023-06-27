@@ -22,13 +22,15 @@ dynamic = ["version", "readme"]
 "Bug Tracker" = "https://github.com/neko-neko-nyan/pygyverhubd/issues"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel", "setuptools-git-versioning<2"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
 
 [tool.setuptools.packages.find]
 include = ["gyverhubd*"]
 namespaces = false
 
 [tool.setuptools.dynamic]
-version = {attr = "gyverhubd.__version__"}
 readme = {file = "README.md", content-type = "text/markdown"}

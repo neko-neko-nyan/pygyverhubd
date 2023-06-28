@@ -1,3 +1,4 @@
+import binascii
 import enum
 
 __all__ = ["Module", "parse_url", "generate_did", "response"]
@@ -45,8 +46,10 @@ def parse_url(url: str) -> tuple[str, str | None, str | None, str | None, str | 
     return prefix, clid, did, cmd, name
 
 
-def generate_did():
-    raise ValueError("Missing did and generating not supported!")
+def generate_did(device: type):
+    name = f"{device.__module__}/{device.__name__}"
+    crc = binascii.crc32(name.encode('utf-8'))
+    return hex(crc)[2:]
 
 
 def response(typ: str, **kwargs):

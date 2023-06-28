@@ -20,7 +20,6 @@ from gyverhubd.ui.components.datetime import Date, Time, DateTime
 
 class MyDevice(Device):
     name = "Test"
-    id = '12345'
 
     class ui(LayoutBuilder):
         tabs = Tabs(items=("Tab 1", "MY TAB", "tab 2", "tab 3", "TAB 4"))

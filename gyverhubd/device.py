@@ -1,7 +1,6 @@
 from functools import cached_property
 
-from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__
-
+from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did
 
 _FS_COMMANDS = frozenset((
     "fsbr", "format", "rename", "delete",
@@ -12,7 +11,7 @@ _FS_COMMANDS = frozenset((
 
 class Device:
     name: str
-    id: str
+    id: str = None
     prefix: str = "MyDevices"
 
     icon: str = ""
@@ -118,6 +117,8 @@ class Device:
     def __init__(self, server):
         self.server = server
         self._ota_data = self._ota_name = None
+        if self.id is None:
+            self.id = generate_did(type(self))
 
     async def on_message(self, req, cmd: str, name: str | None):
         if cmd == "ping":

@@ -11,7 +11,6 @@ from gyverhubd.proto.ws import WSProtocol
 
 class MyDevice(Device):
     name = "Test"
-    id = '12345'
 
     @ui_builder
     async def ui(self, ui: Builder):

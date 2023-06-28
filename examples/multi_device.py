@@ -12,12 +12,10 @@ from gyverhubd.proto.mqtt import MqttProtocol
 
 class MyDevice1(Device):
     name = "Test1"
-    id = '12345'
 
 
 class MyDevice2(Device):
     name = "Test2"
-    id = '54321'
 
 
 if __name__ == '__main__':

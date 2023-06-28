@@ -12,7 +12,6 @@ from gyverhubd.proto.ws import WSProtocol
 
 class MyDevice(Device):
     name = "Test"
-    id = '12345'
 
     info = DeviceInfo()
     info.version("My component", "1.0")
@@ -25,7 +24,6 @@ class MyDevice(Device):
     def _(self):
         total_ram = 1024 * 1024 * 1024 * 64
         used_ram = random.randrange(total_ram * 1 // 8, total_ram * 7 // 8)
-        print(self)
         return {
             'RAM': [used_ram, total_ram]
         }

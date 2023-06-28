@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sys
 
@@ -5,7 +6,7 @@ from aiohttp import web
 from websockets import server as ws_server
 from websockets.exceptions import ConnectionClosed
 
-from . import Protocol, MessageHandler, Request
+from . import Protocol, Request
 from .. import __version__
 
 
@@ -19,15 +20,14 @@ class WSRequest(Request):
         self._ws = ws
 
         assert isinstance(data, str) and data and data[-1] == '\0'
-        url, eq, value = data[:-1].partition('=')
-        if not eq:
-            value = None
-
-        self.url = url
-        self.value = value
+        url, eq, data = data[:-1].partition('=')
+        super().__init__(url, data if eq else None)
 
     async def respond(self, data: dict):
-        await self.protocol.send_to(self._ws, data)
+        if self.did is not None:
+            data['id'] = self.did
+        data = '\n' + json.dumps(data) + '\n'
+        await self._ws.send(data)
 
     def set_focused(self, value: bool):
         setattr(self._ws, _FOCUSED_PROP, value)
@@ -40,7 +40,7 @@ class WSProtocol(Protocol):
         self._ws_port = ws_port
 
         self._clients = {}
-        self._handler: MessageHandler = lambda x: None
+        self._server = None
         self._ws_srv = None
         self._http_srv = None
 
@@ -48,8 +48,8 @@ class WSProtocol(Protocol):
     def focused(self) -> bool:
         return any((getattr(i, _FOCUSED_PROP, False) for i in self._clients.values()))
 
-    def set_handler_message(self, handler):
-        self._handler = handler
+    def bind(self, server):
+        self._server = server
 
     async def start(self):
         self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=["hub"],
@@ -91,16 +91,13 @@ class WSProtocol(Protocol):
                 except ConnectionClosed:
                     pass
                 else:
-                    self._handler(WSRequest(self, ws, data))
+                    req = WSRequest(self, ws, data)
+                    asyncio.ensure_future(self._server.handle_request(req))
 
         finally:
             del self._clients[ws.remote_address]
 
     async def send(self, data: dict):
-        for i in tuple(self._clients.values()):
-            await self.send_to(i, data)
-
-    async def send_to(self, ws, data: dict):
-        data['id'] = self.device_id
         data = '\n' + json.dumps(data) + '\n'
-        await ws.send(data)
+        for i in tuple(self._clients.values()):
+            await i.send(data)

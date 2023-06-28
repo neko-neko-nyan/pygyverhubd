@@ -1,22 +1,21 @@
 import asyncio
 
-from . import Device, Protocol, Request, parse_url
+from . import Device, Protocol, Request
 
 __all__ = ["Server", "run_server_async", "run_server"]
 
 
 class Server:
-    def __init__(self, device: type[Device], *, protocols: list[Protocol] = ()):
+    def __init__(self, *devices: type[Device], protocols: list[Protocol] = ()):
         self._protocols: list[Protocol] = []
-        self.device = device(self)
+        self.devices = [device(self) for device in devices]
 
         for i in protocols:
             self.add_protocol(i)
 
     def add_protocol(self, proto: Protocol):
         self._protocols.append(proto)
-        proto.set_handler_message(self._on_message)
-        proto.device_id = self.device.id
+        proto.bind(self)
 
     async def start(self):
         for i in self._protocols:
@@ -26,39 +25,35 @@ class Server:
         for i in self._protocols:
             await i.stop()
 
-    def _on_message(self, req: Request):
-        asyncio.ensure_future(self._on_message_async(req))
-
-    async def _on_message_async(self, req: Request):
-        prefix, clid, did, cmd, name = parse_url(req.url)
-
-        if self.device.prefix != prefix:
-            return
-
-        dev = self.device
-        if cmd is None:
-            if did is None or dev.id == did:
+    async def handle_request(self, req: Request):
+        if req.cmd is None and req.did is None:
+            for dev in self.devices:
                 data = await dev.on_discover()
                 if data is not None:
                     data['type'] = 'discover'
-                    asyncio.ensure_future(req.respond(data))
+                    data['id'] = dev.id
+                    await req.respond(data)
             return
 
-        if did == dev.id:
-            await dev.on_message(req, cmd, name)
+        for dev in self.devices:
+            if dev.prefix != req.prefix or dev.id != req.did:
+                continue
 
-    async def send(self, typ, **data):
-        data['type'] = typ
+            if req.cmd is None:
+                data = await dev.on_discover()
+                if data is not None:
+                    data['type'] = 'discover'
+                    data['id'] = dev.id
+                    await req.respond(data)
+            else:
+                await dev.on_message(req, req.cmd, req.name)
 
+            break
+
+    async def send(self, data, broadcast=False):
         for i in self._protocols:
-            if i.focused:
+            if broadcast or i.focused:
                 await i.send(data)
-
-    async def broadcast(self, typ, **data):
-        data['type'] = typ
-
-        for i in self._protocols:
-            await i.send(data)
 
 
 async def run_server_async(*args, **kwargs):

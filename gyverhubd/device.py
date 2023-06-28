@@ -50,10 +50,14 @@ class Device:
     # API
 
     async def send(self, typ, **data):
-        await self.server.send(typ, **data)
+        data['id'] = self.id
+        data['type'] = typ
+        await self.server.send(data)
 
     async def broadcast(self, typ, **data):
-        await self.server.broadcast(typ, **data)
+        data['id'] = self.id
+        data['type'] = typ
+        await self.server.send(data, broadcast=True)
 
     async def send_push(self, text: str, *, broadcast=False):
         if broadcast:

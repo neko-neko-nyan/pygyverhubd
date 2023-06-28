@@ -80,6 +80,8 @@ class MqttProtocol(Protocol):
             await self._client.publish(f"{req.prefix}/hub/{req.clid}/{req.did}", data)
 
 
+protocol_factory = MqttProtocol
+
 if sys.platform.lower() == "win32" or os.name.lower() == "nt":
     # fix for aiomqtt
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

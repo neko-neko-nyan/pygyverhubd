@@ -101,3 +101,6 @@ class WSProtocol(Protocol):
         data = '\n' + json.dumps(data) + '\n'
         for i in tuple(self._clients.values()):
             await i.send(data)
+
+
+protocol_factory = WSProtocol

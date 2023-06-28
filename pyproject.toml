@@ -13,7 +13,8 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp~=3.8.4",
-    "websockets~=11.0.3"
+    "websockets~=11.0.3",
+    "aiomqtt~=1.0.0"
 ]
 dynamic = ["version", "readme"]
 

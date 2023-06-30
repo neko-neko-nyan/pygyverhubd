@@ -96,3 +96,12 @@ class Canvas(Component):
         self._invoke_handlers(value)
 
     clicked = Component.changed
+
+
+class Table(Component):
+    __type__ = "table"
+    __value_field__ = ('value', 'value', '')
+    __fields__ = (
+        ('align', 'align', ''),
+        ('width', 'width', ''),
+    )

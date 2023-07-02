@@ -2,6 +2,8 @@ import collections
 import datetime
 import typing
 
+from . import __version__
+
 __all__ = ["DeviceInfo"]
 
 
@@ -22,11 +24,14 @@ class DeviceInfo:
             return obj
         return self
 
-    def to_json(self) -> dict[str, dict]:
+    def to_json(self, version) -> dict[str, dict]:
         data = dict(self._data)
         for group, handlers in self._handlers.items():
             for handler in handlers:
                 data[group].update(handler(self._device))
+
+        data['version']['Library'] = __version__
+        data['version']['Firmware'] = version
         return data
 
     def set(self, group: str, name: str, value: str) -> typing.Self:

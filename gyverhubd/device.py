@@ -140,16 +140,9 @@ class Device:
 
         if cmd == "info":
             if self.info is None:
-                info = dict(versions=dict())
+                info = dict(version=dict(Library=__version__, Firmware=self.version))
             else:
-                info = self.info.to_json()
-
-            info = dict(info)
-            info['version'] = dict(info.get('version', {}))
-            info['version']['Library'] = __version__
-            if self.version:
-                info['version'].setdefault('Firmware', self.version)
-
+                info = self.info.to_json(self.version)
             await req.respond(response("info", info=info))
             return
 

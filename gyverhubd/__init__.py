@@ -1,5 +1,6 @@
 from ._version import *
 from .utils import *
+from .errors import *
 from .info import *
 from .filesystem import *
 from .proto import *

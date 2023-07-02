@@ -98,19 +98,7 @@ class Device:
         if self.fs is None:
             value |= Module.FSBR | Module.FORMAT | Module.RENAME | Module.DELETE | Module.DOWNLOAD | Module.UPLOAD
         else:
-            fst = type(self.fs)
-            if fst.get_files_info == Filesystem.get_files_info:
-                value |= Module.FSBR
-            if fst.format == Filesystem.format:
-                value |= Module.FORMAT
-            if fst.rename == Filesystem.rename:
-                value |= Module.RENAME
-            if fst.delete == Filesystem.delete:
-                value |= Module.DELETE
-            if fst.get_contents == Filesystem.get_contents:
-                value |= Module.DOWNLOAD
-            if fst.put_contents == Filesystem.put_contents:
-                value |= Module.UPLOAD
+            value |= self.fs.disabled_modules
 
         return value
 

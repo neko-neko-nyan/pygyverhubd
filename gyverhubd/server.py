@@ -1,6 +1,6 @@
 import asyncio
 
-from . import Device, Protocol, Request
+from . import Device, Protocol, Request, response, GyverHubError
 
 __all__ = ["Server", "run_server_async", "run_server"]
 
@@ -46,7 +46,10 @@ class Server:
                     data['id'] = dev.id
                     await req.respond(data)
             else:
-                await dev.on_message(req, req.cmd, req.name)
+                try:
+                    await dev.on_message(req, req.cmd, req.name)
+                except GyverHubError as e:
+                    await req.respond(response(e.type, text=e.message))
 
             break
 
@@ -61,6 +64,8 @@ async def run_server_async(*args, **kwargs):
     await server.start()
     try:
         await asyncio.Future()
+    except asyncio.exceptions.CancelledError:
+        pass
     finally:
         await server.stop()
 

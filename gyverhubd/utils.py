@@ -1,7 +1,8 @@
 import binascii
 import enum
+import shutil
 
-__all__ = ["Module", "parse_url", "generate_did", "response"]
+__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_excgroup"]
 
 
 class Module(enum.IntFlag):
@@ -55,3 +56,15 @@ def generate_did(device: type):
 def response(typ: str, **kwargs):
     kwargs['type'] = typ
     return kwargs
+
+
+def rmtree_excgroup(path):
+    errors = []
+
+    def _onerror(_, __, exc_info):
+        _, value, _ = exc_info
+        errors.append(value)
+
+    shutil.rmtree(path, onerror=_onerror)
+    if errors:
+        raise ExceptionGroup("Rmtree finished with errors", errors)

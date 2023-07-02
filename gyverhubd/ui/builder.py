@@ -1,7 +1,7 @@
 import enum
 import itertools
 
-from .. import response
+from .. import response, device
 from . import DeviceUi, Color
 
 __all__ = ["Builder", "ui_builder"]
@@ -229,17 +229,11 @@ class Builder:
 
 
 class BuilderUiWrapper(DeviceUi):
-    def __init__(self, fn, device=None):
+    def __init__(self, fn):
         self._fn = fn
-        self._device = device
-
-    def __get__(self, instance, owner=None):
-        if self._device is None:
-            return type(self)(self._fn, instance)
-        return self
 
     async def build_ui(self, builder: Builder):
-        return await self._fn(self._device, builder)
+        return await self._fn(device, builder)
 
     async def on_update(self):
         components = []

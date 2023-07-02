@@ -1,7 +1,7 @@
 import binascii
 import io
 
-from .. import response, Module, ReadonlyFilesystemError
+from .. import response, Module, ReadonlyFilesystemError, request
 
 __all__ = ["Filesystem"]
 
@@ -71,12 +71,13 @@ class Filesystem:
 
         return value
 
-    async def on_message(self, req, cmd: str, name: str | None) -> dict | None:
+    async def on_message(self) -> dict | None:
+        cmd = request.cmd
         if cmd == "fsbr":
             return self._send_fsbr()
 
         if cmd == "fetch":
-            self.__fetch_temp = self.get_contents(name)
+            self.__fetch_temp = self.get_contents(request.name)
             return response("fetch_start")
 
         if cmd == "fetch_chunk":
@@ -96,16 +97,16 @@ class Filesystem:
             return response("OK")
 
         if cmd == "rename":
-            self.rename(name, req.value)
+            self.rename(request.name, request.value)
             return self._send_fsbr()
 
         if cmd == "delete":
-            self.delete(name)
+            self.delete(request.name)
             return self._send_fsbr()
 
         if cmd == "upload":
-            self.create(name)
-            self.__upload_name = name
+            self.create(request.name)
+            self.__upload_name = request.name
             self.__upload_data = []
             return response("upload_start")
 
@@ -113,12 +114,12 @@ class Filesystem:
             if self.__upload_data is None:
                 return response("upload_err")
 
-            self.__upload_data.append(binascii.a2b_base64(req.value.encode('ascii')))
+            self.__upload_data.append(binascii.a2b_base64(request.value.encode('ascii')))
 
-            if name == 'next':
+            if request.name == 'next':
                 return response("upload_next_chunk")
 
-            elif name == 'last':
+            else:
                 self.put_contents(self.__upload_name, b''.join(self.__upload_data))
                 self.__upload_name = self.__upload_data = None
                 return response("upload_end")

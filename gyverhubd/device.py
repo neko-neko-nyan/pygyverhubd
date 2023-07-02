@@ -175,7 +175,7 @@ class Device(EventTarget):
             if self.fs is None:
                 await request.respond(response("fs_error"))
             else:
-                await request.respond(await self.fs.on_message(request, request.cmd, request.name))
+                await request.respond(await self.fs.on_message())
             return
 
         # # OTA # #

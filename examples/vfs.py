@@ -34,4 +34,4 @@ if os.path.exists('config.json'):
 
 
 if __name__ == '__main__':
-    run_server(MyDevice, protocols=[MqttProtocol("test.mosquitto.org")])
+    run_server(MyDevice(), protocols=[MqttProtocol("test.mosquitto.org")])

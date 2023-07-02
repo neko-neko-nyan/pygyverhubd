@@ -1,6 +1,7 @@
 from functools import cached_property
 
-from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did, EventTarget, request
+from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did, EventTarget, request, \
+    server
 
 _FS_COMMANDS = frozenset((
     "fsbr", "format", "rename", "delete",
@@ -51,12 +52,12 @@ class Device(EventTarget):
     async def send(self, typ, **data):
         data['id'] = self.id
         data['type'] = typ
-        await self.server.send(data)
+        await server.send(data)
 
     async def broadcast(self, typ, **data):
         data['id'] = self.id
         data['type'] = typ
-        await self.server.send(data, broadcast=True)
+        await server.send(data, broadcast=True)
 
     async def send_push(self, text: str, *, broadcast=False):
         if broadcast:
@@ -102,9 +103,8 @@ class Device(EventTarget):
 
         return value
 
-    def __init__(self, server):
+    def __init__(self):
         super().__init__()
-        self.server = server
         self._ota_data = self._ota_name = None
         if self.id is None:
             self.id = generate_did(type(self))

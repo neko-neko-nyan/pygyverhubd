@@ -19,4 +19,4 @@ class MyDevice2(Device):
 
 
 if __name__ == '__main__':
-    run_server(MyDevice1, MyDevice2, protocols=[MqttProtocol("test.mosquitto.org"), WSProtocol()])
+    run_server(MyDevice1(), MyDevice2(), protocols=[MqttProtocol("test.mosquitto.org"), WSProtocol()])

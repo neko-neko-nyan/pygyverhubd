@@ -6,10 +6,10 @@ __all__ = ["Server", "run_server_async", "run_server"]
 
 
 class Server(EventTarget):
-    def __init__(self, *devices: type[Device], protocols: list[Protocol] = ()):
+    def __init__(self, *devices: Device, protocols: list[Protocol] = ()):
         super().__init__()
         self._protocols: list[Protocol] = []
-        self.devices = [device(self) for device in devices]
+        self.devices = devices
         self.add_event_listener('request', self._on_request)
 
         for i in protocols:

@@ -62,5 +62,5 @@ class Config(configparser.RawConfigParser):
                 sys.path.append(options['path'])
             mod = __import__(options['module'])
 
-        device = getattr(mod, options.get('name', 'Device'))
+        device = getattr(mod, options.get('name', 'Device'))()
         self.devices.append(device)

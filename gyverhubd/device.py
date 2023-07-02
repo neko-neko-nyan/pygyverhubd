@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did
+from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did, EventTarget, request
 
 _FS_COMMANDS = frozenset((
     "fsbr", "format", "rename", "delete",
@@ -9,7 +9,7 @@ _FS_COMMANDS = frozenset((
 ))
 
 
-class Device:
+class Device(EventTarget):
     name: str
     id: str = None
     prefix: str = "MyDevices"
@@ -103,37 +103,50 @@ class Device:
         return value
 
     def __init__(self, server):
+        super().__init__()
         self.server = server
         self._ota_data = self._ota_name = None
         if self.id is None:
             self.id = generate_did(type(self))
 
-    async def on_message(self, req, cmd: str, name: str | None):
+        self.add_event_listener('discover', self._on_discover)
+        self.add_event_listener('request', self._on_request)
+
+    async def _on_discover(self):
+        data = await self.on_discover()
+        if data is not None:
+            data['type'] = 'discover'
+            data['id'] = self.id
+            await request.respond(data)
+
+    async def _on_request(self):
+        cmd = request.cmd
+
         if cmd == "ping":
-            await req.respond(response("OK"))
+            await request.respond(response("OK"))
             return
 
         # # UI # #
 
         if cmd == "focus":
-            req.set_focused(True)
+            request.set_focused(True)
             await self.on_focus()
             if self.ui is None:
-                await req.respond(response("ui", controls=[]))
+                await request.respond(response("ui", controls=[]))
             else:
-                await req.respond(await self.ui.on_update())
+                await request.respond(await self.ui.on_update())
             return
 
         if cmd == "unfocus":
-            req.set_focused(False)
+            request.set_focused(False)
             await self.on_unfocus()
             return
 
         if cmd == "set":
             if self.ui is None:
-                await req.respond(response("OK"))
+                await request.respond(response("OK"))
             else:
-                await req.respond(await self.ui.on_ui_event(name, req.value))
+                await request.respond(await self.ui.on_ui_event(request.name, request.value))
             return
 
         # # INFO # #
@@ -143,66 +156,66 @@ class Device:
                 info = dict(version=dict(Library=__version__, Firmware=self.version))
             else:
                 info = self.info.to_json(self.version)
-            await req.respond(response("info", info=info))
+            await request.respond(response("info", info=info))
             return
 
         if cmd == "reboot":
             await self.reboot()
-            await req.respond(response("OK"))
+            await request.respond(response("OK"))
             return
 
         if cmd == "cli":
-            await self.on_cli(req.value)
-            await req.respond(response("OK"))
+            await self.on_cli(request.value)
+            await request.respond(response("OK"))
             return
 
         # # FILESYSTEM # #
 
         if cmd in _FS_COMMANDS:
             if self.fs is None:
-                await req.respond(response("fs_error"))
+                await request.respond(response("fs_error"))
             else:
-                await req.respond(await self.fs.on_message(req, cmd, name))
+                await request.respond(await self.fs.on_message(request, request.cmd, request.name))
             return
 
         # # OTA # #
 
         if cmd == "ota_url":
             try:
-                await self.ota_update(name, url=req.value)
+                await self.ota_update(request.name, url=request.value)
             except Exception:
-                await req.respond(response("ota_url_err"))
+                await request.respond(response("ota_url_err"))
             else:
-                await req.respond(response("ota_url_ok"))
+                await request.respond(response("ota_url_ok"))
             return
 
         if cmd == "ota":
             try:
-                await self.ota_update(name, check_only=True)
+                await self.ota_update(request.name, check_only=True)
             except Exception:
-                await req.respond(response("ota_err"))
+                await request.respond(response("ota_err"))
             else:
-                self._ota_name = name
+                self._ota_name = request.name
                 self._ota_data = []
-                await req.respond(response("ota_start"))
+                await request.respond(response("ota_start"))
             return
 
         if cmd == "ota_chunk":
             if self._ota_data is None:
-                await req.respond(response("ota_err"))
+                await request.respond(response("ota_err"))
                 return
 
-            self._ota_data.append(req.value)
+            self._ota_data.append(request.value)
 
-            if name == 'next':
-                await req.respond(response("ota_next_chunk"))
+            if request.name == 'next':
+                await request.respond(response("ota_next_chunk"))
                 return
 
             try:
                 await self.ota_update(self._ota_name, data=b''.join(self._ota_data))
             except Exception:
-                await req.respond(response("ota_err"))
+                await request.respond(response("ota_err"))
             else:
                 self._ota_name = self._ota_data = None
-                await req.respond(response("ota_end"))
+                await request.respond(response("ota_end"))
             return

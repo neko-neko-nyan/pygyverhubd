@@ -1,14 +1,16 @@
 import asyncio
 
-from . import Device, Protocol, Request, response, GyverHubError
+from . import Device, Protocol, Request, response, GyverHubError, EventTarget, context
 
 __all__ = ["Server", "run_server_async", "run_server"]
 
 
-class Server:
+class Server(EventTarget):
     def __init__(self, *devices: type[Device], protocols: list[Protocol] = ()):
+        super().__init__()
         self._protocols: list[Protocol] = []
         self.devices = [device(self) for device in devices]
+        self.add_event_listener('request', self._on_request)
 
         for i in protocols:
             self.add_protocol(i)
@@ -18,40 +20,36 @@ class Server:
         proto.bind(self)
 
     async def start(self):
-        for i in self._protocols:
-            await i.start()
+        with context.server_context(self):
+            await self.dispatch_event('start')
 
     async def stop(self):
-        for i in self._protocols:
-            await i.stop()
+        with context.server_context(self):
+            await self.dispatch_event('stop')
 
-    async def handle_request(self, req: Request):
-        if req.cmd is None and req.did is None:
+    async def _on_request(self, req: Request):
+        with context.request_context(req), context.server_context(self):
+            if req.cmd is None and req.did is None:
+                for dev in self.devices:
+                    with context.device_context(dev):
+                        await dev.dispatch_event('discover')
+
+                return
+
             for dev in self.devices:
-                data = await dev.on_discover()
-                if data is not None:
-                    data['type'] = 'discover'
-                    data['id'] = dev.id
-                    await req.respond(data)
-            return
+                if dev.prefix != req.prefix or dev.id != req.did:
+                    continue
 
-        for dev in self.devices:
-            if dev.prefix != req.prefix or dev.id != req.did:
-                continue
+                with context.device_context(dev):
+                    if req.cmd is None:
+                        await dev.dispatch_event('discover')
+                    else:
+                        try:
+                            await dev.dispatch_event('request')
+                        except GyverHubError as e:
+                            await req.respond(response(e.type, text=e.message))
 
-            if req.cmd is None:
-                data = await dev.on_discover()
-                if data is not None:
-                    data['type'] = 'discover'
-                    data['id'] = dev.id
-                    await req.respond(data)
-            else:
-                try:
-                    await dev.on_message(req, req.cmd, req.name)
-                except GyverHubError as e:
-                    await req.respond(response(e.type, text=e.message))
-
-            break
+                break
 
     async def send(self, data, broadcast=False):
         for i in self._protocols:

@@ -50,8 +50,10 @@ class WSProtocol(Protocol):
 
     def bind(self, server):
         self._server = server
+        server.add_event_listener('start', self.__server_start)
+        server.add_event_listener('stop', self.__server_stop)
 
-    async def start(self):
+    async def __server_start(self):
         self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=["hub"],
                                              server_header=SERVER_NAME)
 
@@ -65,7 +67,7 @@ class WSProtocol(Protocol):
         self._http_srv = web.TCPSite(runner, self._host, self._http_port)
         await self._http_srv.start()
 
-    async def stop(self):
+    async def __server_stop(self):
         await self._http_srv.stop()
 
         self._ws_srv.close()
@@ -92,7 +94,7 @@ class WSProtocol(Protocol):
                     pass
                 else:
                     req = WSRequest(self, ws, data)
-                    asyncio.ensure_future(self._server.handle_request(req))
+                    asyncio.ensure_future(self._server.dispatch_event('request', req))
 
         finally:
             del self._clients[ws.remote_address]

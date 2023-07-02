@@ -47,8 +47,10 @@ class MqttProtocol(Protocol):
     def bind(self, server):
         self._server = server
         self._prefixes.clear()
+        server.add_event_listener('start', self.__server_start)
+        server.add_event_listener('stop', self.__server_stop)
 
-    async def start(self):
+    async def __server_start(self):
         self._client = aiomqtt.Client(self._hostname, self._port, **self._client_kwargs)
         await self._client.connect()
         asyncio.ensure_future(self._messages())
@@ -63,9 +65,9 @@ class MqttProtocol(Protocol):
         async with self._client.messages() as messages:
             async for message in messages:
                 req = MqttRequest(self, message)
-                asyncio.ensure_future(self._server.handle_request(req))
+                asyncio.ensure_future(self._server.dispatch_event('request', req))
 
-    async def stop(self):
+    async def __server_stop(self):
         await self._client.disconnect()
 
     async def send(self, data: dict):

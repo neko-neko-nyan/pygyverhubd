@@ -12,12 +12,6 @@ class Protocol:
     async def send(self, data: dict):
         raise NotImplementedError()
 
-    async def start(self):
-        raise NotImplementedError()
-
-    async def stop(self):
-        raise NotImplementedError()
-
 
 class Request:
     prefix: str

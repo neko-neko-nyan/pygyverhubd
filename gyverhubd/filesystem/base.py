@@ -51,13 +51,7 @@ class Filesystem:
     def __init__(self):
         self.__fetch_temp = None
         self.__upload_data = self.__upload_name = None
-        self._device = None
         self.writable = True
-
-    def __get__(self, instance, owner=None):
-        if owner is not None:
-            self._device = instance
-        return self
 
     @property
     def disabled_modules(self):

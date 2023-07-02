@@ -38,25 +38,21 @@ class UnionFilesystem(Filesystem):
             prefix = vfspath.join_all(*path[:i])
             fs = self._maps.get(prefix)
             if fs is not None:
-                fs = fs.__get__(self._device, None if self._device is None else type(self._device))
                 return fs, vfspath.join_all(*path[i:])
 
         raise FileNotExistsError()
 
     @property
     def used(self):
-        return sum((fs.__get__(self._device, None if self._device is None else type(self._device)).used
-                    for fs in self._maps.values()))
+        return sum((fs.used for fs in self._maps.values()))
 
     @property
     def size(self):
-        return sum((fs.__get__(self._device, None if self._device is None else type(self._device)).size
-                    for fs in self._maps.values()))
+        return sum((fs.size for fs in self._maps.values()))
 
     def get_files_info(self) -> dict[str, int]:
         res = {}
         for prefix, fs in self._maps.items():
-            fs = fs.__get__(self._device, None if self._device is None else type(self._device))
             for name, size in fs.get_files_info().items():
                 res[vfspath.join(prefix, name)] = size
 
@@ -94,5 +90,4 @@ class UnionFilesystem(Filesystem):
 
     def format(self):
         for fs in self._maps.values():
-            fs = fs.__get__(self._device, None if self._device is None else type(self._device))
             fs.format()

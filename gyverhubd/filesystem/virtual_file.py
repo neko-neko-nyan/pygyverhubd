@@ -1,5 +1,5 @@
 from . import Filesystem, vfspath
-from .. import FileNotExistsError, FilePermissionsError
+from .. import FileNotExistsError, FilePermissionsError, device
 
 __all__ = ['VirtualFile']
 
@@ -38,7 +38,7 @@ class VirtualFile(Filesystem):
             raise FileNotExistsError()
         if self.fget is None:
             raise FilePermissionsError()
-        return self.fget(self._device)
+        return self.fget(device)
 
     def create(self, path: str):
         path = vfspath.normpath(path)
@@ -51,7 +51,7 @@ class VirtualFile(Filesystem):
             raise FileNotExistsError()
         if self.fset is None:
             raise FilePermissionsError()
-        self.fset(self._device, data)
+        self.fset(device, data)
 
     def delete(self, path: str):
         path = vfspath.normpath(path)
@@ -59,7 +59,7 @@ class VirtualFile(Filesystem):
             raise FileNotExistsError()
         if self.fdel is None:
             raise FilePermissionsError()
-        self.fdel(self._device)
+        self.fdel(device)
 
     def rename(self, path: str, new_path: str):
         path = vfspath.normpath(path)
@@ -69,4 +69,4 @@ class VirtualFile(Filesystem):
 
     def format(self):
         if self.fdel is not None:
-            self.fdel(self._device)
+            self.fdel(device)

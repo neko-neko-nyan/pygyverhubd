@@ -2,33 +2,23 @@ import collections
 import datetime
 import typing
 
-from . import __version__
+from . import __version__, device
 
 __all__ = ["DeviceInfo"]
 
 
 class DeviceInfo:
-    __slots__ = ('_data', '_handlers', '_device')
+    __slots__ = ('_data', '_handlers')
 
     def __init__(self):
         self._data = dict(version={}, net={}, memory={}, system={})
         self._handlers = collections.defaultdict(list)
-        self._device = None
-
-    def __get__(self, instance, owner=None):
-        if self._device is None:
-            obj = type(self)
-            obj._data = self._data
-            obj._handlers = self._handlers
-            obj._device = instance
-            return obj
-        return self
 
     def to_json(self, version) -> dict[str, dict]:
         data = dict(self._data)
         for group, handlers in self._handlers.items():
             for handler in handlers:
-                data[group].update(handler(self._device))
+                data[group].update(handler(device))
 
         data['version']['Library'] = __version__
         data['version']['Firmware'] = version

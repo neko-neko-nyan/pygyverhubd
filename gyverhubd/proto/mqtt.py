@@ -38,6 +38,7 @@ class MqttProtocol(Protocol):
 
         self._client: aiomqtt.Client | None = None
         self._server = None
+        self._stopped = False
         self._prefixes = []
 
     @property
@@ -63,11 +64,19 @@ class MqttProtocol(Protocol):
 
     async def _messages(self):
         async with self._client.messages() as messages:
-            async for message in messages:
-                req = MqttRequest(self, message)
-                asyncio.ensure_future(self._server.dispatch_event('request', req))
+            try:
+                async for message in messages:
+                    req = MqttRequest(self, message)
+                    asyncio.ensure_future(self._server.dispatch_event('request', req))
+            except aiomqtt.MqttError as e:
+                if not self._stopped:
+                    raise e
 
     async def __server_stop(self):
+        for dev in self._server.devices:
+            await self._client.publish(f"{dev.prefix}/hub/{dev.id}/status", b'offline')
+
+        self._stopped = True
         await self._client.disconnect()
 
     async def send(self, data: dict):

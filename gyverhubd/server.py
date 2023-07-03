@@ -11,6 +11,8 @@ class Server(EventTarget):
         self._protocols: list[Protocol] = []
         self.devices = devices
         self.add_event_listener('request', self._on_request)
+        self.add_event_listener('request.upload', self._on_request_upload)
+        self.add_event_listener('request.ota', self._on_request_ota)
 
         for i in protocols:
             self.add_protocol(i)
@@ -50,6 +52,18 @@ class Server(EventTarget):
                             await req.respond(response(e.type, text=e.message))
 
                 break
+
+    async def _on_request_upload(self, name: str, data: bytes):
+        print(name, data)
+        dev = self.devices[0]
+        with context.server_context(self), context.device_context(dev):
+            if dev.fs is not None:
+                dev.fs.put_contents(name, data)
+
+    async def _on_request_ota(self, typ: str, data: bytes):
+        dev = self.devices[0]
+        with context.server_context(self), context.device_context(dev):
+            await dev.ota_update(typ, data=data)
 
     async def send(self, data, broadcast=False):
         for i in self._protocols:

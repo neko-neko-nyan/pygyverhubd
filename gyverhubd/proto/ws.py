@@ -61,6 +61,9 @@ class WSProtocol(Protocol):
         app.on_response_prepare.append(self._on_http_end)
         app.router.add_route('GET', '/hub_discover_all', self._discover_handler)
         app.router.add_route('GET', '/hub_http_cfg', self._config_handler)
+        app.router.add_route('POST', '/upload', self._upload_handler)
+        app.router.add_route('POST', '/ota', self._ota_handler)
+        app.router.add_route('GET', '/fs/{path}', self._fs_handler)
 
         runner = web.AppRunner(app)
         await runner.setup()
@@ -75,13 +78,49 @@ class WSProtocol(Protocol):
 
     async def _on_http_end(self, _, res):
         res.headers['Server'] = SERVER_NAME
+        res.headers['Access-Control-Allow-Origin'] = '*'
 
     async def _discover_handler(self, _):
-        return web.Response(text="OK", headers={'Access-Control-Allow-Origin': '*'})
+        return web.Response(text="OK")
 
     async def _config_handler(self, _):
-        config = dict(upload=0, download=0, ota=0, path="/")
-        return web.Response(text=json.dumps(config), headers={'Access-Control-Allow-Origin': '*'})
+        config = dict(upload=1, download=0, ota=1, path="/fs")
+        return web.Response(text=json.dumps(config))
+
+    async def _upload_handler(self, req: web.Request):
+        post = await req.post()
+        file = post.get('upload')
+        if file is None:
+            return web.Response(status=400, reason="Missing upload field")
+        if not isinstance(file, web.FileField):
+            return web.Response(status=400, reason="Upload field must be file")
+
+        name = file.filename
+        data = file.file.read()
+        await self._server.dispatch_event("request.upload", name, data)
+
+        return web.Response()
+
+    async def _ota_handler(self, req: web.Request):
+        post = await req.post()
+        part = req.query.get('type')
+        if part is None:
+            return web.Response(status=400, text='FAIL', reason="Missing part field")
+
+        file = post.get('ota')
+        if file is None:
+            return web.Response(status=400, text='FAIL', reason="Missing upload field")
+        if not isinstance(file, web.FileField):
+            return web.Response(status=400, text='FAIL', reason="Upload field must be file")
+
+        data = file.file.read()
+        await self._server.dispatch_event("request.ota", part, data)
+
+        return web.Response(text='OK')
+
+    async def _fs_handler(self, req: web.Request):
+        print(req.match_info)
+        return web.Response(text='FAIL', status=404)
 
     async def _handle_ws(self, ws: ws_server.WebSocketServerProtocol):
         self._clients[ws.remote_address] = ws

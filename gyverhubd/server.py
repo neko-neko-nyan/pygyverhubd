@@ -10,6 +10,7 @@ class Server(EventTarget):
         super().__init__()
         self._protocols: list[Protocol] = []
         self.devices = devices
+        self._running: asyncio.Future | None = None
         self.add_event_listener('request', self._on_request)
         self.add_event_listener('request.upload', self._on_request_upload)
         self.add_event_listener('request.ota', self._on_request_ota)
@@ -26,6 +27,10 @@ class Server(EventTarget):
             await self.dispatch_event('start')
 
     async def stop(self):
+        if self._running is not None:
+            self._running.set_result(None)
+            return
+
         with context.server_context(self):
             await self.dispatch_event('stop')
 
@@ -72,16 +77,24 @@ class Server(EventTarget):
             if broadcast or i.focused:
                 await i.send(data)
 
+    async def run(self):
+        if self._running is not None:
+            raise RuntimeError("Server is already running")
+
+        self._running = asyncio.Future()
+        await self.start()
+        try:
+            await self._running
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self._running = None
+            await self.stop()
+
 
 async def run_server_async(*args, **kwargs):
     server = Server(*args, **kwargs)
-    await server.start()
-    try:
-        await asyncio.Future()
-    except asyncio.exceptions.CancelledError:
-        pass
-    finally:
-        await server.stop()
+    await server.run()
 
 
 def run_server(*args, **kwargs):

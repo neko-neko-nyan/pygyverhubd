@@ -2,7 +2,9 @@ import binascii
 import enum
 import shutil
 
-__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_excgroup"]
+__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_excgroup", "download_and_update"]
+
+import aiohttp
 
 
 class Module(enum.IntFlag):
@@ -68,3 +70,12 @@ def rmtree_excgroup(path):
     shutil.rmtree(path, onerror=_onerror)
     if errors:
         raise ExceptionGroup("Rmtree finished with errors", errors)
+
+
+async def download_and_update(dev, part: str, url: str):
+    async with aiohttp.ClientSession() as sess:
+        async with sess.get(url) as resp:
+            resp.raise_for_status()
+            data = await resp.read()
+
+    await dev.ota_update(part, data)

@@ -1,3 +1,4 @@
+import binascii
 from functools import cached_property
 
 from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did, EventTarget, request, \
@@ -25,6 +26,7 @@ class Device(EventTarget):
     info: DeviceInfo | None = None
     fs: Filesystem | None = None
     ui: DeviceUi | None = None
+    ota_parts: tuple = ()  # may contain 'fs' or 'flash'
 
     # Overridable
 
@@ -40,7 +42,10 @@ class Device(EventTarget):
     async def reboot(self):
         raise NotImplementedError()
 
-    async def ota_update(self, part, url: str | None = None, data: bytes | None = None, check_only: bool = False):
+    async def ota_update(self, part: str, data: bytes):
+        raise NotImplementedError()
+
+    async def ota_url(self, part: str, url: str):
         raise NotImplementedError()
 
     async def on_discover(self) -> dict:
@@ -93,7 +98,9 @@ class Device(EventTarget):
         if type(self).reboot == Device.reboot:  # not overrided
             value |= Module.REBOOT
         if type(self).ota_update == Device.ota_update:  # not overrided
-            value |= Module.OTA | Module.OTA_URL
+            value |= Module.OTA
+        if type(self).ota_url == Device.ota_url:  # not overrided
+            value |= Module.OTA_URL
         if self.ui is None:
             value |= Module.SET
         if self.fs is None:
@@ -181,8 +188,12 @@ class Device(EventTarget):
         # # OTA # #
 
         if cmd == "ota_url":
+            if request.name not in self.ota_parts:
+                await request.respond(response("ERR", text="Cant update this partition"))
+                return
+
             try:
-                await self.ota_update(request.name, url=request.value)
+                await self.ota_url(request.name, url=request.value)
             except Exception:
                 await request.respond(response("ota_url_err"))
             else:
@@ -190,14 +201,13 @@ class Device(EventTarget):
             return
 
         if cmd == "ota":
-            try:
-                await self.ota_update(request.name, check_only=True)
-            except Exception:
-                await request.respond(response("ota_err"))
-            else:
-                self._ota_name = request.name
-                self._ota_data = []
-                await request.respond(response("ota_start"))
+            if request.name not in self.ota_parts:
+                await request.respond(response("ERR", text="Cant update this partition"))
+                return
+
+            self._ota_name = request.name
+            self._ota_data = []
+            await request.respond(response("ota_start"))
             return
 
         if cmd == "ota_chunk":
@@ -205,14 +215,14 @@ class Device(EventTarget):
                 await request.respond(response("ota_err"))
                 return
 
-            self._ota_data.append(request.value)
+            self._ota_data.append(binascii.a2b_base64(request.value))
 
             if request.name == 'next':
                 await request.respond(response("ota_next_chunk"))
                 return
 
             try:
-                await self.ota_update(self._ota_name, data=b''.join(self._ota_data))
+                await self.ota_update(self._ota_name, b''.join(self._ota_data))
             except Exception:
                 await request.respond(response("ota_err"))
             else:

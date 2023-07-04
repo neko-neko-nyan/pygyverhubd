@@ -60,10 +60,12 @@ class Server(EventTarget):
             if dev.fs is not None:
                 dev.fs.put_contents(name, data)
 
-    async def _on_request_ota(self, typ: str, data: bytes):
+    async def _on_request_ota(self, part: str, data: bytes):
         dev = self.devices[0]
         with context.server_context(self), context.device_context(dev):
-            await dev.ota_update(typ, data=data)
+            if part not in dev.ota_parts:
+                return
+            await dev.ota_update(part, data)
 
     async def send(self, data, broadcast=False):
         for i in self._protocols:

@@ -107,7 +107,7 @@ class WSProtocol(Protocol):
         if part is None:
             return web.Response(status=400, text='FAIL', reason="Missing part field")
 
-        file = post.get('ota')
+        file = post.get(part)
         if file is None:
             return web.Response(status=400, text='FAIL', reason="Missing upload field")
         if not isinstance(file, web.FileField):

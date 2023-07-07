@@ -1,10 +1,12 @@
 import binascii
+import contextlib
 import enum
 import shutil
+import typing
 
-__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_excgroup", "download_and_update"]
+from Crypto.Hash import SHA3_256
 
-import aiohttp
+__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_excgroup", "hash_file"]
 
 
 class Module(enum.IntFlag):
@@ -72,10 +74,20 @@ def rmtree_excgroup(path):
         raise ExceptionGroup("Rmtree finished with errors", errors)
 
 
-async def download_and_update(dev, part: str, url: str):
-    async with aiohttp.ClientSession() as sess:
-        async with sess.get(url) as resp:
-            resp.raise_for_status()
-            data = await resp.read()
+def hash_file(path: str | typing.IO[bytes]):
+    hasher = SHA3_256.new()
 
-    await dev.ota_update(part, data)
+    if isinstance(path, str):
+        fp = open(path, 'rb')
+    else:
+        fp = contextlib.nullcontext(path)
+
+    with fp as f:
+        while True:
+            data = f.read(1 * 1024 * 1024)
+            if not data:
+                break
+
+            hasher.update(data)
+
+    return hasher.digest()

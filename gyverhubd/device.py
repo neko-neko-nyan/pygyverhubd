@@ -20,7 +20,7 @@ class Device(EventTarget):
     prefix: str = "MyDevices"
 
     icon: str = ""
-    pin: int = 0  # TODO
+    pin: typing.Optional[int] = None
     version: str = "0.0.1"
     update_info: str = ""
     update_format: str = "bin"
@@ -52,7 +52,12 @@ class Device(EventTarget):
         raise NotImplementedError()
 
     async def on_discover(self) -> dict:
-        return dict(name=self.name, icon=self.icon, version=self.update_info, PIN=self.pin, ota_t=self.update_format,
+        h = 0
+        if self.pin is not None:
+            for c in f"{self.pin:0>4}":
+                h = (h << 5) - h + ord(c)
+
+        return dict(name=self.name, icon=self.icon, version=self.update_info, PIN=h, ota_t=self.update_format,
                     max_upl=0xFFFF_FFFF_FFFF_FFFF, modules=self._disabled_modules)
 
     # API

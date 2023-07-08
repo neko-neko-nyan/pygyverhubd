@@ -1,7 +1,8 @@
 import os
+import typing
 
 from . import vfspath, Filesystem
-from .. import rmtree_excgroup, FileNotExistsError, FilePermissionsError, GyverHubError
+from .. import rmtree_exc, FileNotExistsError, FilePermissionsError, GyverHubError
 
 __all__ = ['MappedFilesystem']
 
@@ -33,7 +34,7 @@ class MappedFilesystem(Filesystem):
 
         return path
 
-    def get_files_info(self) -> dict[str, int]:
+    def get_files_info(self) -> typing.Dict[str, int]:
         self.used = 0
         res = {}
         for root, dirs, files in os.walk(self._base, topdown=True, followlinks=False):
@@ -87,11 +88,11 @@ class MappedFilesystem(Filesystem):
     def format(self):
         self.used = 0
         try:
-            rmtree_excgroup(self._base)
-        except* FileNotFoundError:
+            rmtree_exc(self._base)
+        except FileNotFoundError:
             raise FileNotExistsError()
-        except* PermissionError:
+        except PermissionError:
             raise FilePermissionsError()
-        except* OSError as e:
-            raise GyverHubError(e.exceptions[0].strerror)
+        except OSError as e:
+            raise GyverHubError(e.strerror)
         os.makedirs(self._base, exist_ok=True)

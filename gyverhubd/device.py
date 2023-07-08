@@ -1,8 +1,11 @@
 import binascii
+import typing
 from functools import cached_property
 
 from . import Filesystem, response, DeviceUi, Module, DeviceInfo, __version__, generate_did, EventTarget, request, \
     server
+
+__all__ = ["Device"]
 
 _FS_COMMANDS = frozenset((
     "fsbr", "format", "rename", "delete",
@@ -21,11 +24,11 @@ class Device(EventTarget):
     version: str = "0.0.1"
     update_info: str = ""
     update_format: str = "bin"
-    author: str | None = None
+    author: typing.Optional[str] = None
     enable_auto_update: bool = False
-    info: DeviceInfo | None = None
-    fs: Filesystem | None = None
-    ui: DeviceUi | None = None
+    info: typing.Optional[DeviceInfo] = None
+    fs: typing.Optional[Filesystem] = None
+    ui: typing.Optional[DeviceUi] = None
     ota_parts: tuple = ()  # may contain 'fs' or 'flash'
 
     # Overridable

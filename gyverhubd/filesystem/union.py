@@ -12,9 +12,9 @@ class UnionFilesystem(Filesystem):
 
     def __init__(self):
         super().__init__()
-        self._maps: dict[str, Filesystem] = {}
+        self._maps: typing.Dict[str, Filesystem] = {}
 
-    def add(self, prefix: str, fs: Filesystem) -> typing.Self:
+    def add(self, prefix: str, fs: Filesystem) -> 'UnionFilesystem':
         prefix = vfspath.normpath(prefix)
         self._maps[prefix] = fs
         return self
@@ -32,7 +32,7 @@ class UnionFilesystem(Filesystem):
 
     # ======== #
 
-    def _get_fs(self, path: str) -> tuple[Filesystem, str]:
+    def _get_fs(self, path: str) -> typing.Tuple[Filesystem, str]:
         path = vfspath.split_all(path)
         for i in range(len(path), -1, -1):
             prefix = vfspath.join_all(*path[:i])
@@ -50,7 +50,7 @@ class UnionFilesystem(Filesystem):
     def size(self):
         return sum((fs.size for fs in self._maps.values()))
 
-    def get_files_info(self) -> dict[str, int]:
+    def get_files_info(self) -> typing.Dict[str, int]:
         res = {}
         for prefix, fs in self._maps.items():
             for name, size in fs.get_files_info().items():

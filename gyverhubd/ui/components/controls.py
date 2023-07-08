@@ -1,3 +1,5 @@
+import typing
+
 from gyverhubd import Component, Color
 
 
@@ -55,5 +57,5 @@ class Joystick(Component):
         x = (value >> 16) - 255
         return x, y
 
-    def value2event(self, value: tuple[int, int]):
+    def value2event(self, value: typing.Tuple[int, int]):
         return None

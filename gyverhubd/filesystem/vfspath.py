@@ -1,9 +1,10 @@
 import os
+import typing
 
 __all__ = ['split_all', 'join_all', 'normpath', 'join', 'sys2vfs']
 
 
-def split_all(path: str) -> list[str]:
+def split_all(path: str) -> typing.List[str]:
     comps = path.split('/')
     new_comps = []
     for comp in comps:

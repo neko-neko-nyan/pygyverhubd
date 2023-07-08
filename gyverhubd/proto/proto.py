@@ -1,6 +1,8 @@
-__all__ = ["Protocol", "Request"]
+import typing
 
 from gyverhubd import parse_url
+
+__all__ = ["Protocol", "Request"]
 
 
 class Protocol:
@@ -15,11 +17,11 @@ class Protocol:
 
 class Request:
     prefix: str
-    clid: str | None
-    did: str | None
-    cmd: str | None
-    name: str | None
-    value: str | None
+    clid: typing.Optional[str]
+    did: typing.Optional[str]
+    cmd: typing.Optional[str]
+    name: typing.Optional[str]
+    value: typing.Optional[str]
     protocol: Protocol
 
     def __init__(self, url: str, value: str):

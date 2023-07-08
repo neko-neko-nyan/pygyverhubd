@@ -1,11 +1,8 @@
 import json
 import os
-import sys
 
-sys.path.append(os.path.dirname(__file__))
-
-from gyverhubd.proto.mqtt import MqttProtocol
 from gyverhubd import Device, run_server, UnionFilesystem, VirtualFilesystem, MappedFilesystem
+from gyverhubd.proto.mqtt import MqttProtocol
 
 
 class MyDevice(Device):

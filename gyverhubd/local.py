@@ -41,13 +41,13 @@ class _ProxyLookup:
         if hasattr(f, "__get__"):
             # A Python function, can be turned into a bound method.
 
-            def bind_f(instance, obj):
+            def bind_f(obj):
                 return f.__get__(obj, type(obj))  # type: ignore
 
         elif f is not None:
             # A C function, use partial to bind the first argument.
 
-            def bind_f(instance, obj):
+            def bind_f(obj):
                 return functools.partial(f, obj)
 
         else:
@@ -85,7 +85,7 @@ class _ProxyLookup:
             return fallback
 
         if self.bind_f is not None:
-            return self.bind_f(instance, obj)
+            return self.bind_f(obj)
 
         return getattr(obj, self.name)
 
@@ -100,8 +100,8 @@ class _ProxyIOp(_ProxyLookup):
         super().__init__(f, fallback)
 
         def bind_f(instance, obj):
-            def i_op(self, other):
-                f(self, other)
+            def i_op(s, other):
+                f(s, other)
                 return instance
 
             return i_op.__get__(obj, type(obj))

@@ -1,11 +1,13 @@
-from .. import response
+import typing
+
 from . import DeviceUi, Component
+from .. import response
 
 __all__ = ["Layout", "LayoutBuilder"]
 
 
 class Layout(DeviceUi):
-    def __init__(self, components: list[Component]):
+    def __init__(self, components: typing.List[Component]):
         self.components = components
 
     def _rebuild_required(self):

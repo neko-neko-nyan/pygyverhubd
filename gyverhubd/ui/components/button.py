@@ -9,11 +9,11 @@ class ButtonBase(Component):
     )
 
     def pressed(self, fn):
-        self.add_handler(lambda self, value: fn(self) if value == '1' else None)
+        self.add_handler(lambda s, value: fn(s) if value == '1' else None)
         return fn
 
     def released(self, fn):
-        self.add_handler(lambda self, value: fn(self) if value == '0' else None)
+        self.add_handler(lambda s, value: fn(s) if value == '0' else None)
         return fn
 
     clicked = pressed

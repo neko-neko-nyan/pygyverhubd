@@ -2,10 +2,13 @@ import asyncio
 import json
 import os
 import sys
+import typing
 
 import aiomqtt
 
 from . import Protocol, Request
+
+__all__ = ["MqttProtocol"]
 
 
 class MqttRequest(Request):
@@ -36,7 +39,7 @@ class MqttProtocol(Protocol):
         self._port = port
         self._client_kwargs = kwargs
 
-        self._client: aiomqtt.Client | None = None
+        self._client: typing.Optional[aiomqtt.Client] = None
         self._server = None
         self._stopped = False
         self._prefixes = []

@@ -1,9 +1,4 @@
 import random
-import sys
-import os
-
-sys.path.append(os.path.dirname(__file__))
-
 
 from gyverhubd import Device, run_server, Builder, Color, ui_builder
 from gyverhubd.proto.ws import WSProtocol

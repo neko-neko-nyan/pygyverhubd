@@ -6,7 +6,7 @@ import typing
 
 from Crypto.Hash import SHA3_256
 
-__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_excgroup", "hash_file"]
+__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_exc", "hash_file"]
 
 
 class Module(enum.IntFlag):
@@ -34,7 +34,8 @@ class Module(enum.IntFlag):
     MQTT = 1 << 15
 
 
-def parse_url(url: str) -> tuple[str, str | None, str | None, str | None, str | None]:
+def parse_url(url: str) -> \
+        typing.Tuple[str, typing.Optional[str], typing.Optional[str], typing.Optional[str], typing.Optional[str]]:
     prefix, *url = url.split('/', maxsplit=4)
     cmd = clid = did = name = None
 
@@ -62,7 +63,7 @@ def response(typ: str, **kwargs):
     return kwargs
 
 
-def rmtree_excgroup(path):
+def rmtree_exc(path):
     errors = []
 
     def _onerror(_, __, exc_info):
@@ -71,10 +72,10 @@ def rmtree_excgroup(path):
 
     shutil.rmtree(path, onerror=_onerror)
     if errors:
-        raise ExceptionGroup("Rmtree finished with errors", errors)
+        raise errors[0]
 
 
-def hash_file(path: str | typing.IO[bytes]):
+def hash_file(path: typing.Union[str, typing.IO[bytes]]):
     hasher = SHA3_256.new()
 
     if isinstance(path, str):

@@ -13,12 +13,12 @@ class ChangeType(enum.Enum):
 class Component:
     __slots__ = ('__changed__', '__data__', '__handlers__', '__layout__')
     __type__: str
-    __fields__: tuple[tuple[str, str, typing.Any], ...] = ()
-    __value_field__: tuple[str, str, typing.Any] | None = None
+    __fields__: typing.Tuple[typing.Tuple[str, str, typing.Any], ...] = ()
+    __value_field__: typing.Optional[typing.Tuple[str, str, typing.Any]] = None
 
     __changed__: ChangeType
     __data__: dict
-    __handlers__: list[callable]
+    __handlers__: typing.List[callable]
     __layout__: 'Layout'
 
     def __init_subclass__(cls, **kwargs):

@@ -1,4 +1,5 @@
-import os.path
+import os
+import typing
 
 from . import Filesystem, vfspath
 from .. import FileNotExistsError, FilePermissionsError, GyverHubError
@@ -27,7 +28,7 @@ class MappedFile(Filesystem):
         except OSError as e:
             raise GyverHubError(e.strerror)
 
-    def get_files_info(self) -> dict[str, int]:
+    def get_files_info(self) -> typing.Dict[str, int]:
         return {'': self.used}
 
     def open(self, path: str, mode="rb"):

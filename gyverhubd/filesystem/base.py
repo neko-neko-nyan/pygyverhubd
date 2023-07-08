@@ -1,5 +1,6 @@
 import binascii
 import io
+import typing
 
 from .. import response, Module, ReadonlyFilesystemError, request
 
@@ -15,7 +16,7 @@ class Filesystem:
 
     # Overridable
 
-    def get_files_info(self) -> dict[str, int]:
+    def get_files_info(self) -> typing.Dict[str, int]:
         pass
 
     def get_contents(self, path: str) -> bytes:
@@ -71,7 +72,7 @@ class Filesystem:
 
         return value
 
-    async def on_message(self) -> dict | None:
+    async def on_message(self) -> typing.Optional[dict]:
         cmd = request.cmd
         if cmd == "fsbr":
             return self._send_fsbr()

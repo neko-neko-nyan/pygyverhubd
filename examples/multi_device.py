@@ -1,13 +1,6 @@
-import os
-import sys
-
-from gyverhubd.proto.ws import WSProtocol
-
-sys.path.append(os.path.dirname(__file__))
-
-
 from gyverhubd import Device, run_server
 from gyverhubd.proto.mqtt import MqttProtocol
+from gyverhubd.proto.ws import WSProtocol
 
 
 class MyDevice1(Device):

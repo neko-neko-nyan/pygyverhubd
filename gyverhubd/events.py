@@ -1,8 +1,9 @@
 import collections
 
-__all__ = ['EventTarget']
-
 import inspect
+import typing
+
+__all__ = ['EventTarget']
 
 
 class _Listener:
@@ -37,7 +38,7 @@ class EventTarget:
     __slots__ = ('__events', )
 
     def __init__(self):
-        self.__events: collections.defaultdict[str, list[_Listener]] = collections.defaultdict(list)
+        self.__events: collections.defaultdict[str, typing.List[_Listener]] = collections.defaultdict(list)
 
     def on(self, event: str, calls: int = 0):
         """

@@ -1,8 +1,9 @@
 import enum
 import itertools
+import typing
 
-from .. import response, device
 from . import DeviceUi, Color
+from .. import response, device
 
 __all__ = ["Builder", "ui_builder"]
 
@@ -21,26 +22,26 @@ class Builder:
         self._components = components
         self._new_name = (f"u{i}" for i in itertools.count())
 
-    def _ensure_name(self, name: str | None) -> str:
+    def _ensure_name(self, name: typing.Optional[str]) -> str:
         if name is None:
             return next(self._new_name)
         return name
 
-    def button(self, label, size: int = 12, color: Color | None = None, tab_w=None, name=None):
+    def button(self, label, size: int = 12, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="button", name=name, label=label, size=size, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value == '1'
 
-    def button_icon(self, label, size: int = 12, color: Color | None = None, tab_w=None, name=None):
+    def button_icon(self, label, size: int = 12, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="button_i", name=name, label=label, size=size, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value == '1'
 
-    def label(self, label, value: str = "", size: int = 12, color: Color | None = None, tab_w=None, name=None):
+    def label(self, label, value: str = "", size: int = 12, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="label", name=name, value=value, label=label, size=size, color=color, tab_w=tab_w))
@@ -54,7 +55,7 @@ class Builder:
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="log", name=name, text=text, tab_w=tab_w))
 
-    def display(self, value, rows: int = 1, size: int = 12, color: Color | None = None, tab_w=None, name=None):
+    def display(self, value, rows: int = 1, size: int = 12, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="display", value=value, name=name, rows=rows, size=size, color=color, tab_w=tab_w))
@@ -68,7 +69,7 @@ class Builder:
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="js", value=value))
 
-    def input(self, label, value: str = "", regex: str = "", max: int | None = None, color: Color | None = None, tab_w=None, name=None):
+    def input(self, label, value: str = "", regex: str = "", max: typing.Optional[int] = None, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="input", name=name, value=value, regex=regex, label=label, max=max,
@@ -76,7 +77,7 @@ class Builder:
         elif self._component_name == name:
             return self._value
 
-    def password(self, label, value: str = "", regex: str = "", max: int | None = None, color: Color | None = None, tab_w=None, name=None):
+    def password(self, label, value: str = "", regex: str = "", max: typing.Optional[int] = None, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="pass", name=name, value=value, regex=regex, label=label, max=max,
@@ -84,7 +85,7 @@ class Builder:
         elif self._component_name == name:
             return self._value
 
-    def spinner(self, label, value: int = 0, min: int = 0, max: int = 100, step: int = 1, color: Color | None = None, tab_w=None, name=None):
+    def spinner(self, label, value: int = 0, min: int = 0, max: int = 100, step: int = 1, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="spinner", name=name, label=label, value=value, min=min, max=max, step=step,
@@ -92,7 +93,7 @@ class Builder:
         elif self._component_name == name:
             return self._value
 
-    def slider(self, label, value: int = 0, min: int = 0, max: int = 100, step: int = 1, color: Color | None = None, tab_w=None, name=None):
+    def slider(self, label, value: int = 0, min: int = 0, max: int = 100, step: int = 1, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="slider", name=name, label=label, value=value, min=min, max=max, step=step,
@@ -100,62 +101,62 @@ class Builder:
         elif self._component_name == name:
             return self._value
 
-    def gauge(self, text, label, value: int = 0, min: int = 0, max: int = 100, step: int = 1, color: Color | None = None, tab_w=None, name=None):
+    def gauge(self, text, label, value: int = 0, min: int = 0, max: int = 100, step: int = 1, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="gauge", name=name, text=text, label=label, value=value, min=min, max=max, step=step,
                                          color=color, tab_w=tab_w))
 
-    def switch(self, label, value: bool = True, color: Color | None = None, tab_w=None, name=None):
+    def switch(self, label, value: bool = True, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="switch", name=name, label=label, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def switch_icon(self, label, text, value: bool = True, color: Color | None = None, tab_w=None, name=None):
+    def switch_icon(self, label, text, value: bool = True, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="switch_i", name=name, label=label, text=text, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def switch_text(self, label, text, value: bool=True, color: Color | None = None, tab_w=None, name=None):
+    def switch_text(self, label, text, value: bool = True, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="switch_t", name=name, label=label, text=text, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def date(self, label, value: int = 0, color: Color | None = None, tab_w=None, name=None):
+    def date(self, label, value: int = 0, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="date", name=name, label=label, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def time(self, label, value: int = 0, color: Color | None = None, tab_w=None, name=None):
+    def time(self, label, value: int = 0, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="time", name=name, label=label, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def datetime(self, label, value: int = 0, color: Color | None = None, tab_w=None, name=None):
+    def datetime(self, label, value: int = 0, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="datetime", name=name, label=label, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def select(self, label, text, value: int = 0, color: Color | None = None, tab_w=None, name=None):
+    def select(self, label, text, value: int = 0, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="select", name=name, label=label, text=text, value=value, color=color, tab_w=tab_w))
         elif self._component_name == name:
             return self._value
 
-    def flags(self, label, text, value: int = 0, color: Color | None = None, tab_w=None, name=None):
+    def flags(self, label, text, value: int = 0, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="flags", name=name, label=label, text=text, value=value, color=color, tab_w=tab_w))
@@ -186,7 +187,7 @@ class Builder:
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="image", label=label, prd=prd, value=value, tab_w=tab_w))
 
-    def joystick(self, label, auto: bool = False, exp: bool = False, color: Color | None = None, tab_w=None, name=None):
+    def joystick(self, label, auto: bool = False, exp: bool = False, color: typing.Optional[Color] = None, tab_w=None, name=None):
         name = self._ensure_name(name)
         if self._build_type == BuildType.LAYOUT:
             self._components.append(dict(type="joy", name=name, label=label, auto=auto, exp=exp, color=color, tab_w=tab_w))

@@ -8,8 +8,11 @@ __all__ = ['request', 'device', 'server', 'request_context', 'device_context', '
 _cv_request: contextvars.ContextVar[Request] = contextvars.ContextVar("pygyverhubd.request_ctx")
 _cv_device: contextvars.ContextVar['Device'] = contextvars.ContextVar("pygyverhubd.device_ctx")
 _cv_server: contextvars.ContextVar['Server'] = contextvars.ContextVar("pygyverhubd.server_ctx")
+# noinspection PyTypeChecker
 request: Request = LocalProxy(_cv_request)
+# noinspection PyTypeChecker
 device: 'Device' = LocalProxy(_cv_device)
+# noinspection PyTypeChecker
 server: 'Server' = LocalProxy(_cv_server)
 
 

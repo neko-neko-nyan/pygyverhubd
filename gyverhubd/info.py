@@ -14,7 +14,7 @@ class DeviceInfo:
         self._data = dict(version={}, net={}, memory={}, system={})
         self._handlers = collections.defaultdict(list)
 
-    def to_json(self, version) -> dict[str, dict]:
+    def to_json(self, version) -> typing.Dict[str, dict]:
         data = dict(self._data)
         for group, handlers in self._handlers.items():
             for handler in handlers:
@@ -24,20 +24,20 @@ class DeviceInfo:
         data['version']['Firmware'] = version
         return data
 
-    def set(self, group: str, name: str, value: str) -> typing.Self:
+    def set(self, group: str, name: str, value: str) -> 'DeviceInfo':
         self._data[group][name] = value
         return self
 
-    def version(self, name: str, value: str) -> typing.Self:
+    def version(self, name: str, value: str) -> 'DeviceInfo':
         return self.set('version', name, value)
 
-    def system(self, name: str, value: str) -> typing.Self:
+    def system(self, name: str, value: str) -> 'DeviceInfo':
         return self.set('system', name, value)
 
-    def network(self, name: str, value: str) -> typing.Self:
+    def network(self, name: str, value: str) -> 'DeviceInfo':
         return self.set('net', name, value)
 
-    def memory(self, name: str, value: str | int, total: int | None = None) -> typing.Self:
+    def memory(self, name: str, value: typing.Union[str, int], total: typing.Optional[int] = None) -> 'DeviceInfo':
         if isinstance(value, (tuple, list)) and total is None:
             value, total = value
         if isinstance(value, int):
@@ -49,7 +49,7 @@ class DeviceInfo:
                 raise TypeError("Argument 'total' must not be set when value is str!")
         return self.set('memory', name, value)
 
-    def uptime(self, value: datetime.timedelta) -> typing.Self:
+    def uptime(self, value: datetime.timedelta) -> 'DeviceInfo':
         # noinspection PyTypeChecker
         return self.set('system', 'Uptime', value.seconds)
 

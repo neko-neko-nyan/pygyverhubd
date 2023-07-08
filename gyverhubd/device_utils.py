@@ -23,7 +23,7 @@ async def download_and_update(dev, part: str, url: str):
     await dev.ota_update(part, data)
 
 
-async def restart_app(dev):
+async def restart_app(_):
     server: Server = context.server
     os.environ['__SRV_AUTO_RESTART'] = '1'
     await server.stop()
@@ -56,7 +56,7 @@ async def install_update(dev, part: str, data: bytes):
     await server.stop()
 
 
-def validate_package(pkg_path: typing.IO[bytes], key: str | bytes):
+def validate_package(pkg_path: typing.IO[bytes], key: bytes):
     with zipfile.ZipFile(pkg_path) as zf:
         file_hashes = []
 

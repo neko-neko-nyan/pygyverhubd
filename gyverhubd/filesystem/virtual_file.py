@@ -1,3 +1,5 @@
+import typing
+
 from . import Filesystem, vfspath
 from .. import FileNotExistsError, FilePermissionsError, device
 
@@ -29,7 +31,7 @@ class VirtualFile(Filesystem):
 
     # ======== #
 
-    def get_files_info(self) -> dict[str, int]:
+    def get_files_info(self) -> typing.Dict[str, int]:
         return {'': self.used}
 
     def get_contents(self, path: str) -> bytes:

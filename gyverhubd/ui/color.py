@@ -1,3 +1,4 @@
+import colorsys
 import typing
 
 __all__ = ["Color"]
@@ -7,52 +8,28 @@ class Color(int):
     __slots__ = ()
 
     @classmethod
-    def from_hex(cls, value: int) -> typing.Self:
+    def from_hex(cls, value: int) -> 'Color':
         return cls(value)
 
     @classmethod
-    def from_grayscale(cls, value: int) -> typing.Self:
+    def from_grayscale(cls, value: int) -> 'Color':
         return cls.from_rgb(value, value, value)
 
     @classmethod
-    def from_rgb(cls, r: int, g: int, b: int) -> typing.Self:
+    def from_rgb(cls, r: int, g: int, b: int) -> 'Color':
         return cls((r << 16) | (g << 8) | (b << 0))
 
     @classmethod
-    def from_rgbf(cls, r: float, g: float, b: float) -> typing.Self:
+    def from_rgbf(cls, r: float, g: float, b: float) -> 'Color':
         return cls.from_rgb(int(r * 255), int(g * 255), int(b * 255))
 
     @classmethod
-    def from_hsvf(cls, h: float, s: float, v: float) -> typing.Self:
-        i, f = divmod(h * 6, 1)
-        p = v * (1 - s)
-
-        match int(i):
-            case 0:
-                t = v * (1 - (1 - f) * s)
-                r, g, b = v, t, p
-            case 1:
-                q = v * (1 - f * s)
-                r, g, b = q, v, p
-            case 2:
-                t = v * (1 - (1 - f) * s)
-                r, g, b = p, v, t
-            case 3:
-                q = v * (1 - f * s)
-                r, g, b = p, q, v
-            case 4:
-                t = v * (1 - (1 - f) * s)
-                r, g, b = t, p, v
-            case 5:
-                q = v * (1 - f * s)
-                r, g, b = v, p, q
-            case _:
-                assert False
-
+    def from_hsvf(cls, h: float, s: float, v: float) -> 'Color':
+        r, g, b = colorsys.hsv_to_rgb(h, s, v)
         return cls.from_rgbf(r, g, b)
 
     @classmethod
-    def from_hsv(cls, h: int, s: int, v: int) -> typing.Self:
+    def from_hsv(cls, h: int, s: int, v: int) -> 'Color':
         return cls.from_hsvf(h // 255, s // 255, v // 255)
 
     @classmethod

@@ -1,21 +1,15 @@
-import os
 import random
-import sys
-
-
-sys.path.append(os.path.dirname(__file__))
-
 
 from gyverhubd import Device, run_server, LayoutBuilder, Layout, Color
 from gyverhubd.proto.ws import WSProtocol
 from gyverhubd.ui.components.button import Button, ButtonIcon
-from gyverhubd.ui.components.tabs import Tabs
-from gyverhubd.ui.components.text import Label, Led, Title, Gauge, Display, Html, Log, Canvas
+from gyverhubd.ui.components.controls import Joystick, ColorSelect, Select, Flags
+from gyverhubd.ui.components.datetime import Date, Time, DateTime
 from gyverhubd.ui.components.input import Input, Password
 from gyverhubd.ui.components.spinner import Slider, Spinner
-from gyverhubd.ui.components.controls import Joystick, ColorSelect, Select, Flags
 from gyverhubd.ui.components.switch import Switch, SwitchIcon, SwitchText
-from gyverhubd.ui.components.datetime import Date, Time, DateTime
+from gyverhubd.ui.components.tabs import Tabs
+from gyverhubd.ui.components.text import Label, Led, Title, Gauge, Display, Html, Log, Canvas
 
 
 class MyDevice(Device):

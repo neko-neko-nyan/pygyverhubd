@@ -1,4 +1,5 @@
 import asyncio
+import typing
 
 from . import Device, Protocol, Request, response, GyverHubError, EventTarget, context
 
@@ -6,11 +7,11 @@ __all__ = ["Server", "run_server_async", "run_server"]
 
 
 class Server(EventTarget):
-    def __init__(self, *devices: Device, protocols: list[Protocol] = ()):
+    def __init__(self, *devices: Device, protocols: typing.List[Protocol] = ()):
         super().__init__()
-        self._protocols: list[Protocol] = []
+        self._protocols: typing.List[Protocol] = []
         self.devices = devices
-        self._running: asyncio.Future | None = None
+        self._running: typing.Optional[asyncio.Future] = None
         self.add_event_listener('request', self._on_request)
         self.add_event_listener('request.upload', self._on_request_upload)
         self.add_event_listener('request.ota', self._on_request_ota)

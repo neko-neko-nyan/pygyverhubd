@@ -9,7 +9,8 @@ from websockets.exceptions import ConnectionClosed
 from . import Protocol, Request
 from .. import __version__
 
-
+__all__ = ["WSProtocol", "protocol_factory"]
+HUB_SP = ws_server.Subprotocol("hub")
 SERVER_NAME = f"Python/{sys.version.partition(' ')[0]} gyverhubd/{__version__}"
 _FOCUSED_PROP = f'__focused'
 
@@ -54,7 +55,7 @@ class WSProtocol(Protocol):
         server.add_event_listener('stop', self.__server_stop)
 
     async def __server_start(self):
-        self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=["hub"],
+        self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=[HUB_SP],
                                              server_header=SERVER_NAME)
 
         app = web.Application()
@@ -76,14 +77,17 @@ class WSProtocol(Protocol):
         self._ws_srv.close()
         await self._ws_srv.wait_closed()
 
-    async def _on_http_end(self, _, res):
+    @staticmethod
+    async def _on_http_end(_, res):
         res.headers['Server'] = SERVER_NAME
         res.headers['Access-Control-Allow-Origin'] = '*'
 
-    async def _discover_handler(self, _):
+    @staticmethod
+    async def _discover_handler(_):
         return web.Response(text="OK")
 
-    async def _config_handler(self, _):
+    @staticmethod
+    async def _config_handler(_):
         config = dict(upload=1, download=0, ota=1, path="/fs")
         return web.Response(text=json.dumps(config))
 
@@ -118,8 +122,8 @@ class WSProtocol(Protocol):
 
         return web.Response(text='OK')
 
-    async def _fs_handler(self, req: web.Request):
-        print(req.match_info)
+    @staticmethod
+    async def _fs_handler(_: web.Request):
         return web.Response(text='FAIL', status=404)
 
     async def _handle_ws(self, ws: ws_server.WebSocketServerProtocol):

@@ -1,3 +1,5 @@
+import typing
+
 from . import vfspath, Filesystem
 from .. import FileNotExistsError
 
@@ -16,7 +18,7 @@ class VirtualFilesystem(Filesystem):
     def used(self):
         return sum((len(data) for data in self._data.values()))
 
-    def get_files_info(self) -> dict[str, int]:
+    def get_files_info(self) -> typing.Dict[str, int]:
         return {name: len(data) for name, data in self._data.items()}
 
     def get_contents(self, path: str) -> bytes:

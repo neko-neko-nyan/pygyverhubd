@@ -36,7 +36,8 @@ def import_private_key(key: str) -> DSA.DsaKey:
     return DSA.construct(tup)
 
 
-def make_package(base_path: pathlib.Path, key: DSA.DsaKey | None, out_path: pathlib.Path | typing.IO[bytes]):
+def make_package(base_path: pathlib.Path, key: typing.Optional[DSA.DsaKey],
+                 out_path: typing.Union[pathlib.Path, typing.IO[bytes]]):
     with zipfile.ZipFile(out_path, 'w') as zf:
         file_hashes = []
 

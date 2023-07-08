@@ -15,7 +15,7 @@ class MappedFilesystem(Filesystem):
         self.writable = rw
         self.size = size
         self.used = 0
-        self._base = os.path.realpath(basedir, strict=True)
+        self._base = os.path.realpath(basedir)
         os.makedirs(self._base, exist_ok=True)
 
     def _map(self, path: str) -> str:

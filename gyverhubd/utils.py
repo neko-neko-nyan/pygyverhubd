@@ -1,12 +1,13 @@
 import binascii
 import contextlib
 import enum
+import importlib
 import shutil
 import typing
 
 from Crypto.Hash import SHA3_256
 
-__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_exc", "hash_file"]
+__all__ = ["Module", "parse_url", "generate_did", "response", "rmtree_exc", "hash_file", "load_protocol"]
 
 
 class Module(enum.IntFlag):
@@ -92,3 +93,11 @@ def hash_file(path: typing.Union[str, typing.IO[bytes]]):
             hasher.update(data)
 
     return hasher.digest()
+
+
+def load_protocol(name, options: typing.Optional[dict] = None):
+    if options is None:
+        options = {}
+
+    mod = importlib.import_module(f".proto.{name}", __package__)
+    return mod.protocol_factory(**options)

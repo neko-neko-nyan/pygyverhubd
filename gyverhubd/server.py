@@ -1,13 +1,13 @@
 import asyncio
 import typing
 
-from . import Device, Protocol, Request, response, GyverHubError, EventTarget, context
+from . import Device, Protocol, Request, response, GyverHubError, EventTarget, context, load_protocol
 
 __all__ = ["Server", "run_server_async", "run_server"]
 
 
 class Server(EventTarget):
-    def __init__(self, *devices: Device, protocols: typing.List[Protocol] = ()):
+    def __init__(self, *devices: Device, protocols: typing.List[typing.Union[Protocol, dict]] = ()):
         super().__init__()
         self._protocols: typing.List[Protocol] = []
         self.devices = devices
@@ -19,7 +19,11 @@ class Server(EventTarget):
         for i in protocols:
             self.add_protocol(i)
 
-    def add_protocol(self, proto: Protocol):
+    def add_protocol(self, proto: typing.Union[Protocol, dict]):
+        if isinstance(proto, dict):
+            name = proto.pop('name')
+            proto = load_protocol(name, proto)
+
         self._protocols.append(proto)
         proto.bind(self)
 

@@ -34,8 +34,8 @@ class MqttRequest(Request):
 
 
 class MqttProtocol(Protocol):
-    def __init__(self, hostname: str, port=1883, **kwargs):
-        self._hostname = hostname
+    def __init__(self, host: str, port=1883, **kwargs):
+        self._host = host
         self._port = port
         self._client_kwargs = kwargs
 
@@ -55,7 +55,7 @@ class MqttProtocol(Protocol):
         server.add_event_listener('stop', self.__server_stop)
 
     async def __server_start(self):
-        self._client = aiomqtt.Client(self._hostname, self._port, **self._client_kwargs)
+        self._client = aiomqtt.Client(self._host, self._port, **self._client_kwargs)
         await self._client.connect()
         asyncio.ensure_future(self._messages())
 

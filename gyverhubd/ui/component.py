@@ -11,7 +11,7 @@ class ChangeType(enum.Enum):
 
 
 class Component:
-    __slots__ = ('__changed__', '__data__', '__handlers__', '__layout__')
+    __slots__ = ('__changed__', '__data__', '__handlers__', '__layout__', '__enabled__')
     __type__: str
     __fields__: typing.Tuple[typing.Tuple[str, str, typing.Any], ...] = ()
     __value_field__: typing.Optional[typing.Tuple[str, str, typing.Any]] = None
@@ -20,6 +20,7 @@ class Component:
     __data__: dict
     __handlers__: typing.List[callable]
     __layout__: 'Layout'
+    __enabled__: bool
 
     def __init_subclass__(cls, **kwargs):
         fields = ()
@@ -40,6 +41,10 @@ class Component:
             self.__data__[name] = kwargs.get(name, default)
         self.__handlers__ = []
         self.__changed__ = ChangeType.FULL
+        if 'disabled' in kwargs:
+            self.__enabled__ = not kwargs.pop('disabled')
+        else:
+            self.__enabled__ = True
 
         self.name = None
         self.label = label
@@ -48,6 +53,9 @@ class Component:
         res = {json: getattr(self, name) for name, json, default in type(self).__fields__}
         res['label'] = '_no' if self.label is None else self.label
         res['name'] = self.name
+        if hasattr(self, 'tab_w'):
+            res['tab_w'] = self.tab_w
+
         res['type'] = type(self).__type__
         if type(self).__value_field__ is not None:
             name, json, default = type(self).__value_field__
@@ -66,9 +74,11 @@ class Component:
         return self.value2event(getattr(self, type(self).__value_field__[0]))
 
     def __setattr__(self, key, value):
-        if key in {'__changed__', '__data__', '__handlers__', '__layout__'}:
+        if key == '__enabled__' and value != getattr(self, key, None):
+            self.__changed__ = ChangeType.FULL
+        if key in {'__changed__', '__data__', '__handlers__', '__layout__', '__enabled__'}:
             return super().__setattr__(key, value)
-        if self.__changed__ != ChangeType.FULL and value != getattr(self, key, None):
+        if self.__changed__ != ChangeType.FULL and value != getattr(self, key, None) and self.__enabled__:
             if type(self).__value_field__ is not None and key == type(self).__value_field__[0]:
                 self.__changed__ = ChangeType.UPDATE
             else:

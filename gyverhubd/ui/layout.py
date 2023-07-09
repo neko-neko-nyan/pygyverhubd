@@ -7,7 +7,10 @@ __all__ = ["Layout", "LayoutBuilder"]
 
 
 class Layout(DeviceUi):
-    def __init__(self, components: typing.List[Component]):
+    def __init__(self, components: typing.List[Component] = None):
+        if components is None:
+            components = []
+
         self.components = components
 
     def _rebuild_required(self):
@@ -27,7 +30,9 @@ class Layout(DeviceUi):
     def _to_json(self):
         components = []
         for i in self.components:
-            components.append(i.to_json())
+            data = i.to_json()
+            if i.__enabled__:
+                components.append(data)
         return components
 
     async def _on_event(self, name, value):

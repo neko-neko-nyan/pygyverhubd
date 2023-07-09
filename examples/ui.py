@@ -1,15 +1,14 @@
 import random
 
-from gyverhubd import Device, run_server, Color
+from gyverhubd import Device, run_server, Color, Layout
 from gyverhubd.proto.ws import WSProtocol
-from gyverhubd.ui.new_ui import new_ui_builder, Builder
 
 
 class MyDevice(Device):
     name = "Test"
 
-    @new_ui_builder
-    def ui(ui: Builder):
+    @Layout
+    def ui(self, ui: Layout):
         tabs = ui.Tabs(items=("TAB 4", ))
 
         with tabs.tab("1"):

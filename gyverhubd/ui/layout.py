@@ -1,9 +1,11 @@
+import contextlib
+import itertools
 import typing
 
 from . import DeviceUi, Component
 from .. import response
 
-__all__ = ["Layout", "LayoutBuilder"]
+__all__ = ["Layout"]
 
 
 class Layout(DeviceUi):
@@ -12,6 +14,50 @@ class Layout(DeviceUi):
             components = []
 
         self.components = components
+        self._new_name = (f"u{i}" for i in itertools.count())
+
+    def __new__(cls, components: typing.List[Component] = None):
+        self = super().__new__(cls)
+        if callable(components):
+            self.__init__()
+            self = self(components)
+        return self
+
+    def __getattr__(self, item):
+        from . import components
+        item = getattr(components, item)
+
+        def class_wrapper(*args, **kwargs):
+            el: Component = item(*args, **kwargs)
+            el.__set_name__(self, next(self._new_name))
+            self.components.append(el)
+            return el
+
+        return class_wrapper
+
+    def __call__(self, fn):
+        return _DeviceDescriptor(self, fn)
+
+    @contextlib.contextmanager
+    def rows(self, width=None, cols=None, height=0):
+        if cols is not None:
+            if width is not None:
+                raise ValueError("Width and cols cannot be used together")
+            width = 100 // cols
+
+        self.components.append(_BeginWidgets(height=height))
+
+        saved, self.components = self.components, []
+        yield
+        cs, self.components = self.components, saved
+
+        self.components += cs
+        self.components.append(_EndWidgets())
+
+        if width is not None:
+            tab_w = width
+            for i in cs:
+                i.tab_w = tab_w
 
     def _rebuild_required(self):
         return any((i.rebuild_required() for i in self.components))
@@ -59,25 +105,28 @@ class Layout(DeviceUi):
         return response("OK")
 
 
-class LayoutBuilderMeta(type):
-    def __new__(cls, name, bases, namespace):
-        if not bases:
-            return super().__new__(cls, name, bases, namespace)
+class _DeviceDescriptor:
+    def __init__(self, layout, fn):
+        self._layout = layout
+        self._fn = fn
+        self._created = False
 
-        components = []
-        for k, v in namespace.items():
-            if not k.startswith('_') and isinstance(v, Component):
-                components.append(v)
+    def __get__(self, instance, owner=None):
+        if owner is None:
+            return self
 
-        layout = Layout(components)
-
-        for k, v in namespace.items():
-            if not k.startswith('_') and isinstance(v, Component):
-                v.__set_name__(layout, k)
-                setattr(layout, k, v)
-
-        return layout
+        if not self._created:
+            self._fn(instance, self._layout)
+            self._created = True
+        return self._layout
 
 
-class LayoutBuilder(metaclass=LayoutBuilderMeta):
-    pass
+class _BeginWidgets(Component):
+    __type__ = "widget_b"
+    __fields__ = (
+        ('height', 'height', 0),
+    )
+
+
+class _EndWidgets(Component):
+    __type__ = "widget_e"

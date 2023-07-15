@@ -4,7 +4,7 @@ import sys
 
 from gyverhubd import run_server
 from gyverhubd.proto.mqtt import MqttProtocol
-from gyverhubd.proto.ws import WSProtocol
+from gyverhubd.proto.websocket import WebsocketProtocol
 
 
 def import_device(main: str):
@@ -25,7 +25,8 @@ def do_run2(args):
     devices = []
 
     if args.websocket:
-        protocols.append(WSProtocol(args.websocket_host, args.http_port, args.websocket_port))
+        protocols.append(WebsocketProtocol(args.websocket_host, args.http_port, args.websocket_port))
+
     if args.mqtt is not None:
         protocols.append(MqttProtocol(args.mqtt, args.mqtt_port, username=args.mqtt_username,
                                       password=args.mqtt_password))

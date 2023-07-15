@@ -24,7 +24,7 @@ class Request:
     value: typing.Optional[str]
     protocol: Protocol
 
-    def __init__(self, url: str, value: str):
+    def __init__(self, url: str, value: typing.Optional[str]):
         self.prefix, self.clid, self.did, self.cmd, self.name = parse_url(url)
         self.value = value
 

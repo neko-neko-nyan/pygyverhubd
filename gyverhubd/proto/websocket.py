@@ -9,15 +9,15 @@ from websockets.exceptions import ConnectionClosed
 from . import Protocol, Request
 from .. import __version__
 
-__all__ = ["WSProtocol", "protocol_factory"]
+__all__ = ["WebsocketProtocol", "protocol_factory"]
 HUB_SP = ws_server.Subprotocol("hub")
 SERVER_NAME = f"Python/{sys.version.partition(' ')[0]} gyverhubd/{__version__}"
 _FOCUSED_PROP = f'__focused'
 
 
-class WSRequest(Request):
+class WebsocketRequest(Request):
     def __init__(self, protocol, ws, data):
-        self.protocol: WSProtocol = protocol
+        self.protocol: WebsocketProtocol = protocol
         self._ws = ws
 
         assert isinstance(data, str) and data and data[-1] == '\0'
@@ -34,7 +34,7 @@ class WSRequest(Request):
         setattr(self._ws, _FOCUSED_PROP, value)
 
 
-class WSProtocol(Protocol):
+class WebsocketProtocol(Protocol):
     def __init__(self, host="", http_port=80, ws_port=81):
         self._host = host
         self._http_port = http_port
@@ -136,7 +136,7 @@ class WSProtocol(Protocol):
                 except ConnectionClosed:
                     pass
                 else:
-                    req = WSRequest(self, ws, data)
+                    req = WebsocketRequest(self, ws, data)
                     asyncio.ensure_future(self._server.dispatch_event('request', req))
 
         finally:
@@ -148,4 +148,4 @@ class WSProtocol(Protocol):
             await i.send(data)
 
 
-protocol_factory = WSProtocol
+protocol_factory = WebsocketProtocol

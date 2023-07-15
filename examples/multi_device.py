@@ -1,6 +1,6 @@
 from gyverhubd import Device, run_server
 from gyverhubd.proto.mqtt import MqttProtocol
-from gyverhubd.proto.ws import WSProtocol
+from gyverhubd.proto.websocket import WebsocketProtocol
 
 
 class MyDevice1(Device):
@@ -12,4 +12,4 @@ class MyDevice2(Device):
 
 
 if __name__ == '__main__':
-    run_server(MyDevice1(), MyDevice2(), protocols=[MqttProtocol("test.mosquitto.org"), WSProtocol()])
+    run_server(MyDevice1(), MyDevice2(), protocols=[MqttProtocol("test.mosquitto.org"), WebsocketProtocol()])

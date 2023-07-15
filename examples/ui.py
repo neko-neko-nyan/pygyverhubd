@@ -1,7 +1,7 @@
 import random
 
 from gyverhubd import Device, run_server, Color, Layout
-from gyverhubd.proto.ws import WSProtocol
+from gyverhubd.proto.websocket import WebsocketProtocol
 
 
 class MyDevice(Device):
@@ -81,4 +81,4 @@ class MyDevice(Device):
 
 
 if __name__ == '__main__':
-    run_server(MyDevice(), protocols=[WSProtocol()])
+    run_server(MyDevice(), protocols=[WebsocketProtocol()])

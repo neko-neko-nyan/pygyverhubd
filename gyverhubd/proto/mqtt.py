@@ -3,12 +3,75 @@ import json
 import os
 import sys
 import typing
+import socket
 
 import aiomqtt
 
 from . import Protocol, Request
 
-__all__ = ["MqttProtocol"]
+__all__ = ["MqttProtocol", "protocol_factory"]
+
+
+def _parse_sockopt(opt: str):
+    level, name, *opt = opt.split(':')
+    level = getattr(socket, f'SOL_{level.upper()}')
+    name = getattr(socket.SO_BROADCAST, f'SO_{name.upper()}')
+
+    if len(opt) == 2:
+        value = None, int(opt[1])
+    elif len(opt) == 1:
+        if opt[0].isnumeric():
+            value = int(opt[0]),
+        else:
+            value = opt[0].encode()
+    else:
+        raise ValueError(f"Invalid value for socket option: {opt}")
+
+    return level, name, *value
+
+
+def _parse_options(options: typing.Dict[str, str]) -> dict:
+    res = {}
+    for option, value in options.items():
+        if option in {'keepalive', 'bind-port', 'message-retry-set'}:
+            res[option.replace('-', '_')] = int(value)
+
+        elif option in {'bind-address', 'client-id', 'username', 'password', 'websocket-path', 'transport'}:
+            res[option.replace('-', '_')] = value
+
+        elif option == 'protocol':
+            res['protocol'] = aiomqtt.ProtocolVersion[value]
+
+        elif option == 'timeout':
+            res['timeout'] = float(value)
+
+        elif option in {'clean-session', 'clean-start'}:
+            value = value.lower()
+            if value in {'yes', 'on', 'true'}:
+                res[option.replace('-', '_')] = True
+            elif value in {'no', 'off', 'false'}:
+                res[option.replace('-', '_')] = True
+            else:
+                raise ValueError(f"Invalid MQTT option ({option}) value: {value!r}")
+
+        elif option == 'socket-options':
+            res['socket_options'] = tuple((_parse_sockopt(i) for i in value.split(',')))
+
+        elif option == 'websocket-headers':
+            value = (i.partition(':') for i in value.split(','))
+            res['websocket_headers'] = {k: v for k, _, v in value}
+
+        elif option == 'tls':
+            if value in {'yes', 'on', 'true'}:
+                res['tls_params'] = aiomqtt.TLSParameters()
+            else:
+                value = (i.partition(':') for i in value.split(','))
+                res['tls_params'] = aiomqtt.TLSParameters(**{k: v for k, _, v in value})
+
+        else:
+            raise ValueError(f"Invalid MQTT option {option!r}")
+
+    return res
 
 
 class MqttRequest(Request):
@@ -34,10 +97,16 @@ class MqttRequest(Request):
 
 
 class MqttProtocol(Protocol):
-    def __init__(self, host: str, port=1883, **kwargs):
-        self._host = host
-        self._port = port
-        self._client_kwargs = kwargs
+    def __init__(self, host: str, options: typing.Dict[str, str]):
+        host, _, port = host.rpartition(':')
+        if port:
+            port = int(port)
+        else:
+            port = 1883
+
+        self._client_kwargs = _parse_options(options)
+        self._client_kwargs['hostname'] = host
+        self._client_kwargs['port'] = port
 
         self._client: typing.Optional[aiomqtt.Client] = None
         self._server = None
@@ -55,7 +124,7 @@ class MqttProtocol(Protocol):
         server.add_event_listener('stop', self.__server_stop)
 
     async def __server_start(self):
-        self._client = aiomqtt.Client(self._host, self._port, **self._client_kwargs)
+        self._client = aiomqtt.Client(**self._client_kwargs)
         await self._client.connect()
         asyncio.ensure_future(self._messages())
 

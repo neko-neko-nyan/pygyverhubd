@@ -1,12 +1,44 @@
 import asyncio
 import json
+import typing
 
-import serial
 import serial_asyncio
 
 from . import Protocol, Request
 
 __all__ = ["SerialProtocol", "protocol_factory"]
+
+
+def _parse_options(options: typing.Dict[str, str]) -> dict:
+    res = {}
+    for option, value in options.items():
+        if option == 'baudrate':
+            res['baudrate'] = int(value)
+
+        elif option in {'timeout', 'write_timeout', 'inter_byte_timeout'}:
+            res[option] = float(value)
+
+        elif option in {'xonxoff', 'rtscts', 'dsrdtr', 'exclusive'}:
+            value = value.lower()
+            if value in {'yes', 'on', 'true'}:
+                res[option] = True
+            elif value in {'no', 'off', 'false'}:
+                res[option] = True
+            else:
+                raise ValueError(f"Invalid serial option ({option}) value: {value!r}")
+
+        elif option == 'config':
+            res['bytesize'] = int(value[0])
+            res['parity'] = value[1].upper()
+            if len(value) == 3:
+                res['stopbits'] = int(value[2:])
+            else:
+                res['stopbits'] = float(value[2:])
+
+        else:
+            raise ValueError(f"Invalid serial option {option!r}")
+
+    return res
 
 
 class SerialRequest(Request):
@@ -27,13 +59,10 @@ class SerialRequest(Request):
 
 
 class SerialProtocol(Protocol):
-    def __init__(self, port: str = None, baudrate: int = 9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE,
-                 stopbits=serial.STOPBITS_ONE, timeout=None, xonxoff=False, rtscts=False, write_timeout=None,
-                 dsrdtr=False, inter_byte_timeout=None, exclusive=None):
+    def __init__(self, port: str, options: typing.Dict[str, str]):
         self._reader = self._writer = None
-        self._kwargs = dict(url=port, baudrate=baudrate, bytesize=bytesize, parity=parity, stopbits=stopbits,
-                            timeout=timeout, write_timeout=write_timeout, inter_byte_timeout=inter_byte_timeout,
-                            xonxoff=xonxoff, rtscts=rtscts, dsrdtr=dsrdtr, exclusive=exclusive)
+        self._kwargs = _parse_options(options)
+        self._kwargs['url'] = port
         self.focused = False
 
     def bind(self, server):

@@ -19,10 +19,11 @@ def main():
     run.add_argument("--http-port", type=int, default=80, metavar='PORT', help='Run HTTP server on specified PORT (default: 80).')
     run.add_argument("--websocket-port", type=int, default=81, metavar='PORT', help='Run WebSocket server on specified PORT (default: 81).')
 
-    run.add_argument("-m", "--mqtt", metavar="SERVER", help="Enable MQTT connection on specified SERVER.")
-    run.add_argument("--mqtt-port", type=int, default=1883, metavar="PORT", help="MQTT port (default: 1883)")
-    run.add_argument("--mqtt-username", metavar="USER", help="MQTT server user name (default: do not authenticate)")
-    run.add_argument("--mqtt-password", metavar='PASS', help="MQTT server password (default: do not authenticate)")
+    run.add_argument("-m", "--mqtt", metavar="SERVER[:PORT]", help="Enable MQTT connection on specified SERVER and PORT (default port is 1883).")
+    run.add_argument("--mqtt-option", metavar="NAME=VALUE", help="Set MQTT protocol option (try --mqtt-option=help=yes to get help)", action='append')
+
+    run.add_argument("-s", "--serial", metavar="PORT", help="Enable serial connection on specified PORT (on linux PORT must be /dev/ttyX, on Windows it may be COMX \\\\.\\CNCX).")
+    run.add_argument("--serial-option", metavar="NAME=VALUE", help="Set serial connection option (try --serial-option=help=yes to get help)", action='append')
 
     # ====
 

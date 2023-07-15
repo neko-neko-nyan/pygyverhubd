@@ -4,6 +4,7 @@ import sys
 
 from gyverhubd import run_server
 from gyverhubd.proto.mqtt import MqttProtocol
+from gyverhubd.proto.serial import SerialProtocol
 from gyverhubd.proto.websocket import WebsocketProtocol
 
 
@@ -28,8 +29,12 @@ def do_run2(args):
         protocols.append(WebsocketProtocol(args.websocket_host, args.http_port, args.websocket_port))
 
     if args.mqtt is not None:
-        protocols.append(MqttProtocol(args.mqtt, args.mqtt_port, username=args.mqtt_username,
-                                      password=args.mqtt_password))
+        options = (i.partition('=') for i in args.mqtt_option)
+        protocols.append(MqttProtocol(args.mqtt, {k: v for k, _, v in options}))
+
+    if args.serial is not None:
+        options = (i.partition('=') for i in args.serial_option)
+        protocols.append(SerialProtocol(args.serial, {k: v for k, _, v in options}))
 
     path = str(args.path.resolve())
     if path not in sys.path:

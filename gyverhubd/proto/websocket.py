@@ -29,8 +29,8 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
         elif option in {'open_timeout', 'ping_interval', 'ping_timeout', 'close_timeout', 'shutdown_timeout'}:
             res[option.replace('-', '_')] = float(value)
 
-        elif option in {'http-download-dir', 'compression', ''}:
-            res[option.replace('-', '_')] = value
+        elif option == 'http-download-dir':
+            res['http_download_dir'] = value
 
         elif option in {'http-upload', 'http-download', 'http-ota'}:
             value = value.lower()
@@ -42,13 +42,10 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
                 raise ValueError(f"Invalid serial option ({option}) value: {value!r}")
 
         elif option == 'tls':
-            if value.lower() in {'yes', 'on', 'true'}:
-                res['ssl_context'] = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            else:
-                value = (i.partition(':') for i in value.split(','))
-                ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                ctx.load_cert_chain(**{k: v for k, _, v in value})
-                res['ssl_context'] = ctx
+            value = (i.partition(':') for i in value.split(','))
+            ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ctx.load_cert_chain(**{k: v for k, _, v in value})
+            res['ssl_context'] = ctx
 
         else:
             raise ValueError(f"Invalid serial option {option!r}")
@@ -104,7 +101,7 @@ class WebsocketProtocol(Protocol):
 
     async def __server_start(self):
         kwargs = {k: v for k, v in self._kwargs.items() if k in {
-            'compression', 'open_timeout', 'ping_interval', 'ping_timeout', 'close_timeout'}}
+            'open_timeout', 'ping_interval', 'ping_timeout', 'close_timeout'}}
         self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._port + 1, subprotocols=[HUB_SP],
                                              server_header=SERVER_NAME, **kwargs)
 

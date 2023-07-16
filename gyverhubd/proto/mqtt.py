@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import ssl
 import sys
 import typing
 import socket
@@ -36,7 +37,7 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
 
     res = {}
     for option, value in options.items():
-        if option in {'keepalive', 'bind-port', 'message-retry-set'}:
+        if option in {'keepalive', 'bind-port'}:
             res[option.replace('-', '_')] = int(value)
 
         elif option in {'bind-address', 'client-id', 'username', 'password', 'websocket-path', 'transport'}:
@@ -69,7 +70,10 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
                 res['tls_params'] = aiomqtt.TLSParameters()
             else:
                 value = (i.partition(':') for i in value.split(','))
-                res['tls_params'] = aiomqtt.TLSParameters(**{k: v for k, _, v in value})
+                value = {k: v for k, _, v in value}
+                if 'tls_version' in value:
+                    value['tls_version'] = getattr(ssl, f'PROTOCOL_{value["tls_version"]}')
+                res['tls_params'] = aiomqtt.TLSParameters(**value)
 
         else:
             raise ValueError(f"Invalid MQTT option {option!r}")
@@ -102,9 +106,10 @@ class MqttRequest(Request):
 class MqttProtocol(Protocol):
     def __init__(self, host: str, options: typing.Dict[str, str] = None):
         host, _, port = host.rpartition(':')
-        if port:
+        if host:
             port = int(port)
         else:
+            host = port
             port = 1883
 
         self._client_kwargs = _parse_options(options)

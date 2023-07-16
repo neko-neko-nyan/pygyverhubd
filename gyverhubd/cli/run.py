@@ -47,7 +47,7 @@ def do_run2(args):
     devices = []
 
     if args.websocket is not None:
-        options = (i.partition('=') for i in args.mqtt_option)
+        options = (i.partition('=') for i in args.websocket_option)
         protocols.append(WebsocketProtocol(args.websocket, {k: v for k, _, v in options}))
 
     if args.mqtt is not None:

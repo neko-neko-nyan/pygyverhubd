@@ -31,6 +31,9 @@ def _parse_sockopt(opt: str):
 
 
 def _parse_options(options: typing.Dict[str, str]) -> dict:
+    if options is None:
+        return {}
+
     res = {}
     for option, value in options.items():
         if option in {'keepalive', 'bind-port', 'message-retry-set'}:
@@ -62,7 +65,7 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
             res['websocket_headers'] = {k: v for k, _, v in value}
 
         elif option == 'tls':
-            if value in {'yes', 'on', 'true'}:
+            if value.lower() in {'yes', 'on', 'true'}:
                 res['tls_params'] = aiomqtt.TLSParameters()
             else:
                 value = (i.partition(':') for i in value.split(','))
@@ -97,7 +100,7 @@ class MqttRequest(Request):
 
 
 class MqttProtocol(Protocol):
-    def __init__(self, host: str, options: typing.Dict[str, str]):
+    def __init__(self, host: str, options: typing.Dict[str, str] = None):
         host, _, port = host.rpartition(':')
         if port:
             port = int(port)

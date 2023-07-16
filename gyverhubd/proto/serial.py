@@ -10,6 +10,9 @@ __all__ = ["SerialProtocol", "protocol_factory"]
 
 
 def _parse_options(options: typing.Dict[str, str]) -> dict:
+    if options is None:
+        return {}
+
     res = {}
     for option, value in options.items():
         if option == 'baudrate':
@@ -59,7 +62,7 @@ class SerialRequest(Request):
 
 
 class SerialProtocol(Protocol):
-    def __init__(self, port: str, options: typing.Dict[str, str]):
+    def __init__(self, port: str, options: typing.Dict[str, str] = None):
         self._reader = self._writer = None
         self._kwargs = _parse_options(options)
         self._kwargs['url'] = port

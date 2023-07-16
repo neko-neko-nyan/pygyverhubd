@@ -1,5 +1,6 @@
 import asyncio
 import json
+import sys
 import typing
 
 import serial_asyncio
@@ -7,6 +8,20 @@ import serial_asyncio
 from . import Protocol, Request
 
 __all__ = ["SerialProtocol", "protocol_factory"]
+
+_HELP = """\
+List of serial protocol options:
+baudrate           int   Port communication speed, default is 9600.
+config             str   Port configuration. Default is "8n1", 8 bits per byte, no parity checks, one stop bit.
+xonxoff            bool  Enable software flow control.
+rtscts             bool  Enable hardware (RTS/CTS) flow control.
+dsrdtr             bool  Enable hardware (DSR/DTR) flow control.
+exclusive          bool  Set exclusive access mode (POSIX only). A port cannot be opened in exclusive access mode if it
+                         is already open in exclusive access mode.
+timeout            float Read timeout value in seconds.
+write_timeout      float Write timeout value in seconds.
+inter_byte_timeout float Inter-character timeout. Disabled by default.
+"""
 
 
 def _parse_options(options: typing.Dict[str, str]) -> dict:
@@ -37,6 +52,10 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
                 res['stopbits'] = int(value[2:])
             else:
                 res['stopbits'] = float(value[2:])
+
+        elif option == 'help':
+            print(_HELP, file=sys.stderr)
+            sys.exit(0)
 
         else:
             raise ValueError(f"Invalid serial option {option!r}")

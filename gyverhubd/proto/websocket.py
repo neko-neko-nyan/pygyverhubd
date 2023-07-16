@@ -16,6 +16,29 @@ HUB_SP = ws_server.Subprotocol("hub")
 SERVER_NAME = f"Python/{sys.version.partition(' ')[0]} gyverhubd/{__version__}"
 _FOCUSED_PROP = f'__focused'
 
+_HELP = """\
+List of WebSocket protocol options:
+
+For websocket connections
+open_timeout      float Timeout for opening webbsocket connections in seconds.
+ping_interval     float Delay between keepalive pings in seconds.
+ping_timeout      float Timeout for keepalive pings in seconds.
+close_timeout     float Timeout for closing the connection in seconds. For legacy reasons, the actual timeout is larger.
+
+For http connections
+backlog           int   Number of unaccepted connections that the system will allow before refusing new connections.
+shutdown_timeout  float Timeout for closing opened connections on server stop.
+http-upload       bool  Enable file uploading via HTTP POST.
+http-ota          bool  Enable OTA package uploading via HTTP POST.
+http-download     bool  Enable file downloading via HTTP GET.
+http-download-dir str   Base directory for downloading files via HTTP.
+tls                     Enable SSL/TLS secure server with specified parameters. List of comma-separated items,
+                        in format NAME:VALUE. Name can be one of:
+  certfile        str   PEM-encoded server certificate.
+  keyfile         str   Private key file.
+  password        str   Password for private key.
+"""
+
 
 def _parse_options(options: typing.Dict[str, str]) -> dict:
     if options is None:
@@ -46,6 +69,10 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
             ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             ctx.load_cert_chain(**{k: v for k, _, v in value})
             res['ssl_context'] = ctx
+
+        elif option == 'help':
+            print(_HELP, file=sys.stderr)
+            sys.exit(0)
 
         else:
             raise ValueError(f"Invalid serial option {option!r}")

@@ -12,6 +12,36 @@ from . import Protocol, Request
 
 __all__ = ["MqttProtocol", "protocol_factory"]
 
+_HELP = """\
+List of MQTT protocol options:
+username       str   The username to authenticate with.
+password       str   The password to authenticate with.
+client-id      str   The client ID to use. If not set, one will be generated automatically.
+protocol       str   The version of the MQTT protocol. Must be one of: V31, V311, V5.
+clean-session  bool  If true, the broker will remove all information about this client when it disconnects. If false,
+                     the client is a persistent client and subscription information and queued messages will be retained
+                     when the client disconnects.
+transport      str   The transport protocol to use. Either "tcp" or "websockets".
+timeout        float The default timeout for all communication with the broker in seconds.
+keepalive      int   The keepalive timeout for the client in seconds.
+bind-address   str   The IP address of a local network interface to bind this client to.
+bind-port      int   The network port to bind this client to.
+clean-start    bool  V5 only: Set the clean start flag always or never.
+socket-options       Options to pass to the underlying socket. List of comma-separated items, in format LEVEL:NAME:VALUE
+                     or LEVEL:NAME::LEN. Level and name are symbolic constants, without SOL_/SO_ prefixes.
+websocket-path str   The path to use for websockets.
+websocket-headers    The headers to use for websockets. List of comma-separated items, in format NAME:VALUE.
+tls            true  Enable TLS/MQTTS connection to broker with system-default parameters.
+tls                  Enable TLS/MQTTS connection to broker with specified parameters. List of comma-separated items,
+                     in format NAME:VALUE. Name can be one of:
+  ca_certs     str   PEM-encoded CA certificate to verify broker.
+  certfile     str   PEM-encoded client certificate.
+  keyfile      str   Private key file.
+  keyfile_password str Password for private key.
+  ciphers      str   Ciphers for secure connection. It should be a string in the OpenSSL cipher list format.
+  tls_version  str   SSL/TLS version. Must be one of: SSLv2, SSLv3, TLSv1, TLSv1_1, TLSv1_2 or TLS (default).
+"""
+
 
 def _parse_sockopt(opt: str):
     level, name, *opt = opt.split(':')
@@ -74,6 +104,10 @@ def _parse_options(options: typing.Dict[str, str]) -> dict:
                 if 'tls_version' in value:
                     value['tls_version'] = getattr(ssl, f'PROTOCOL_{value["tls_version"]}')
                 res['tls_params'] = aiomqtt.TLSParameters(**value)
+
+        elif option == 'help':
+            print(_HELP, file=sys.stderr)
+            sys.exit(0)
 
         else:
             raise ValueError(f"Invalid MQTT option {option!r}")

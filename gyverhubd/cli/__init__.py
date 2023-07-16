@@ -14,10 +14,11 @@ def main():
     run.add_argument("path", type=pathlib.Path, default=pathlib.Path('.'), help="Path to device package or directory containing device files (default: current directory).")
     run.add_argument("-d", "--device", action='append', metavar='MOD.CLASS', help="Run specified device CLASS from MOD. MOD can be top-level module or package. This option can be repeated to run multiple devices in one server (MQTT only).")
 
-    run.add_argument("-w", "--websocket", action='store_true', help="Enable WebSocket / HTTP server")
-    run.add_argument("--websocket-host", default='', metavar='HOST', help="Run server on specific host or IP address (default: all addresses).")
-    run.add_argument("--http-port", type=int, default=80, metavar='PORT', help='Run HTTP server on specified PORT (default: 80).')
-    run.add_argument("--websocket-port", type=int, default=81, metavar='PORT', help='Run WebSocket server on specified PORT (default: 81).')
+    run.add_argument("-w", "--websocket", metavar='HOST[:PORT]', const='', nargs='?',
+                     help="Enable WebSocket / HTTP server on specified HOST and PORT (default port is 80 for http and"
+                          " 443 for https, default host is all hosts).")
+    run.add_argument("--websocket-option", metavar="NAME=VALUE", default=[], action='append',
+                     help='Set WebSocket protocol option (try --websocket-option=help=yes to get help)')
 
     run.add_argument("-m", "--mqtt", metavar="SERVER[:PORT]", help="Enable MQTT connection on specified SERVER and PORT (default port is 1883).")
     run.add_argument("--mqtt-option", metavar="NAME=VALUE", help="Set MQTT protocol option (try --mqtt-option=help=yes to get help)", action='append')

@@ -25,8 +25,9 @@ def do_run2(args):
     protocols = []
     devices = []
 
-    if args.websocket:
-        protocols.append(WebsocketProtocol(args.websocket_host, args.http_port, args.websocket_port))
+    if args.websocket is not None:
+        options = (i.partition('=') for i in args.mqtt_option)
+        protocols.append(WebsocketProtocol(args.websocket, {k: v for k, _, v in options}))
 
     if args.mqtt is not None:
         options = (i.partition('=') for i in args.mqtt_option)

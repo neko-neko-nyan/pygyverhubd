@@ -1,6 +1,8 @@
 import asyncio
 import json
+import ssl
 import sys
+import typing
 
 from aiohttp import web
 from websockets import server as ws_server
@@ -13,6 +15,45 @@ __all__ = ["WebsocketProtocol", "protocol_factory"]
 HUB_SP = ws_server.Subprotocol("hub")
 SERVER_NAME = f"Python/{sys.version.partition(' ')[0]} gyverhubd/{__version__}"
 _FOCUSED_PROP = f'__focused'
+
+
+def _parse_options(options: typing.Dict[str, str]) -> dict:
+    if options is None:
+        return {}
+
+    res = {}
+    for option, value in options.items():
+        if option == 'backlog':
+            res['backlog'] = int(value)
+
+        elif option in {'open_timeout', 'ping_interval', 'ping_timeout', 'close_timeout', 'shutdown_timeout'}:
+            res[option.replace('-', '_')] = float(value)
+
+        elif option in {'http-download-dir', 'compression', ''}:
+            res[option.replace('-', '_')] = value
+
+        elif option in {'http-upload', 'http-download', 'http-ota'}:
+            value = value.lower()
+            if value in {'yes', 'on', 'true'}:
+                res[option.replace('-', '_')] = True
+            elif value in {'no', 'off', 'false'}:
+                res[option.replace('-', '_')] = True
+            else:
+                raise ValueError(f"Invalid serial option ({option}) value: {value!r}")
+
+        elif option == 'tls':
+            if value.lower() in {'yes', 'on', 'true'}:
+                res['ssl_context'] = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            else:
+                value = (i.partition(':') for i in value.split(','))
+                ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                ctx.load_cert_chain(**{k: v for k, _, v in value})
+                res['ssl_context'] = ctx
+
+        else:
+            raise ValueError(f"Invalid serial option {option!r}")
+
+    return res
 
 
 class WebsocketRequest(Request):
@@ -35,10 +76,17 @@ class WebsocketRequest(Request):
 
 
 class WebsocketProtocol(Protocol):
-    def __init__(self, host="", http_port=80, ws_port=81):
+    def __init__(self, host: str = "", options: typing.Dict[str, str] = None):
+        self._kwargs = _parse_options(options)
+
+        host, _, port = host.rpartition(':')
+        if port:
+            port = int(port)
+        else:
+            port = 80 if self._kwargs.get('ssl_context') is None else 443
+
         self._host = host
-        self._http_port = http_port
-        self._ws_port = ws_port
+        self._port = port
 
         self._clients = {}
         self._server = None
@@ -55,8 +103,10 @@ class WebsocketProtocol(Protocol):
         server.add_event_listener('stop', self.__server_stop)
 
     async def __server_start(self):
-        self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._ws_port, subprotocols=[HUB_SP],
-                                             server_header=SERVER_NAME)
+        kwargs = {k: v for k, v in self._kwargs.items() if k in {
+            'compression', 'open_timeout', 'ping_interval', 'ping_timeout', 'close_timeout'}}
+        self._ws_srv = await ws_server.serve(self._handle_ws, self._host, self._port + 1, subprotocols=[HUB_SP],
+                                             server_header=SERVER_NAME, **kwargs)
 
         app = web.Application()
         app.on_response_prepare.append(self._on_http_end)
@@ -64,11 +114,12 @@ class WebsocketProtocol(Protocol):
         app.router.add_route('GET', '/hub_http_cfg', self._config_handler)
         app.router.add_route('POST', '/upload', self._upload_handler)
         app.router.add_route('POST', '/ota', self._ota_handler)
-        app.router.add_route('GET', '/fs/{path}', self._fs_handler)
+        app.router.add_route('GET', self._kwargs.get('http_download_dir', '') + '/{path}', self._fs_handler)
 
         runner = web.AppRunner(app)
         await runner.setup()
-        self._http_srv = web.TCPSite(runner, self._host, self._http_port)
+        kwargs = {k: v for k, v in self._kwargs.items() if k in {'shutdown_timeout', 'ssl_context', 'backlog'}}
+        self._http_srv = web.TCPSite(runner, self._host, self._port, **kwargs)
         await self._http_srv.start()
 
     async def __server_stop(self):
@@ -86,9 +137,9 @@ class WebsocketProtocol(Protocol):
     async def _discover_handler(_):
         return web.Response(text="OK")
 
-    @staticmethod
-    async def _config_handler(_):
-        config = dict(upload=1, download=0, ota=1, path="/fs")
+    async def _config_handler(self, _):
+        config = dict(upload=self._kwargs.get('http_upload', True), download=self._kwargs.get('http_download', True),
+                      ota=self._kwargs.get('http_ota', True), path=self._kwargs.get('http_download_dir', ''))
         return web.Response(text=json.dumps(config))
 
     async def _upload_handler(self, req: web.Request):

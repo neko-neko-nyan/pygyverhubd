@@ -36,7 +36,7 @@ def import_private_key(key: str) -> DSA.DsaKey:
     return DSA.construct(tup)
 
 
-def make_package(base_path: pathlib.Path, key: typing.Optional[DSA.DsaKey],
+def make_package(base_path: pathlib.Path, key: typing.Optional[DSA.DsaKey], main_device: typing.Optional[str],
                  out_path: typing.Union[pathlib.Path, typing.IO[bytes]]):
     with zipfile.ZipFile(out_path, 'w') as zf:
         file_hashes = []
@@ -73,6 +73,9 @@ def make_package(base_path: pathlib.Path, key: typing.Optional[DSA.DsaKey],
             signature = signer.sign(hasher)
             zf.writestr('SIGN', signature)
 
+        if main_device is not None:
+            zf.writestr('MAIN', main_device)
+
 
 def do_pack(args):
     output = args.output
@@ -84,4 +87,4 @@ def do_pack(args):
     if args.sign is not None:
         key = import_private_key(args.sign.read())
 
-    make_package(args.directory, key, output)
+    make_package(args.directory, key, args.main, output)

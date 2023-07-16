@@ -1,6 +1,7 @@
 import importlib
 import os
 import sys
+import zipfile
 
 from gyverhubd import run_server
 from gyverhubd.proto.mqtt import MqttProtocol
@@ -19,6 +20,26 @@ def import_device(main: str):
         mod = getattr(mod, i)
 
     return getattr(mod, cls)
+
+
+def get_main_device(path):
+    if path.is_dir():
+        main = path / 'MAIN'
+        if not main.exists():
+            print("No device to run specified and no MAIN file found!", file=sys.stderr)
+            sys.exit(1)
+
+        return main.read_text('utf-8')
+
+    else:
+        with zipfile.ZipFile(path) as zf:
+            try:
+                main = zf.getinfo('MAIN')
+            except KeyError:
+                print("No device to run specified and package has no MAIN device!", file=sys.stderr)
+                sys.exit(1)
+
+            return zf.read(main).decode('utf-8')
 
 
 def do_run2(args):
@@ -45,6 +66,9 @@ def do_run2(args):
     if cached is not None:
         cached.invalidate_caches()
         del sys.path_importer_cache[path]
+
+    if args.device is None:
+        args.device = [get_main_device(args.path)]
 
     for i in args.device:
         dev_cls = import_device(i)

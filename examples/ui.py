@@ -39,7 +39,9 @@ class MyDevice(Device):
                 ui.Gauge("Temp", text="°C", value=random.randrange(-5, 30), min=-5, max=30, step=0.1, color=Color.RED)
 
         with tabs.tab("2"):
-            ui.Joystick(auto=True)
+            with ui.rows(cols=2):
+                ui.DPad("D-pad")
+                ui.Joystick(auto=True)
 
             ui.Spinner("Spinner")
             ui.Spinner("Spinner F", value=0, min=0, max=10, step=0.5)

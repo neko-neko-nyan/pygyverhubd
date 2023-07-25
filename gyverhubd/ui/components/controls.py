@@ -42,12 +42,9 @@ class ColorSelect(Component):
         return Color.from_hex(int(value))
 
 
-class Joystick(Component):
-    __type__ = "joy"
+class JoystickBase(Component):
     __value_field__ = ('value', 'value', (0, 0))
     __fields__ = (
-        ('auto', 'auto', False),
-        ('exp', 'exp', False),
         ('color', 'color', None),
     )
 
@@ -59,3 +56,15 @@ class Joystick(Component):
 
     def value2event(self, value: typing.Tuple[int, int]):
         return None
+
+
+class Joystick(JoystickBase):
+    __type__ = "joy"
+    __fields__ = (
+        ('auto', 'auto', False),
+        ('exp', 'exp', False),
+    )
+
+
+class DPad(JoystickBase):
+    __type__ = "dpad"

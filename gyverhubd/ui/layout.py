@@ -45,14 +45,14 @@ class Layout(DeviceUi):
                 raise ValueError("Width and cols cannot be used together")
             width = 100 // cols
 
-        self.components.append(_BeginWidgets(height=height))
+        self.components.append(_BeginRow(height=height))
 
         saved, self.components = self.components, []
         yield
         cs, self.components = self.components, saved
 
         self.components += cs
-        self.components.append(_EndWidgets())
+        self.components.append(_EndRow())
 
         if width is not None:
             tab_w = width
@@ -121,12 +121,12 @@ class _DeviceDescriptor:
         return self._layout
 
 
-class _BeginWidgets(Component):
-    __type__ = "widget_b"
+class _BeginRow(Component):
+    __type__ = "row_b"
     __fields__ = (
         ('height', 'height', 0),
     )
 
 
-class _EndWidgets(Component):
-    __type__ = "widget_e"
+class _EndRow(Component):
+    __type__ = "row_e"

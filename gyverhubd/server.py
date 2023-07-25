@@ -64,7 +64,6 @@ class Server(EventTarget):
                 break
 
     async def _on_request_upload(self, name: str, data: bytes):
-        print(name, data)
         dev = self.devices[0]
         with context.server_context(self), context.device_context(dev):
             if dev.fs is not None:
@@ -76,6 +75,12 @@ class Server(EventTarget):
             if part not in dev.ota_parts:
                 return
             await dev.ota_update(part, data)
+
+    async def get_file_contents(self, path: str) -> typing.Optional[bytes]:
+        dev = self.devices[0]
+        with context.server_context(self), context.device_context(dev):
+            if dev.fs is not None:
+                return dev.fs.get_contents(path)
 
     async def send(self, data, broadcast=False):
         for i in self._protocols:

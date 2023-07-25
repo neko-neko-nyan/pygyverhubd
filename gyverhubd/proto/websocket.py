@@ -9,7 +9,7 @@ from websockets import server as ws_server
 from websockets.exceptions import ConnectionClosed
 
 from . import Protocol, Request
-from .. import __version__
+from .. import __version__, FileNotExistsError, FilePermissionsError, GyverHubError
 
 __all__ = ["WebsocketProtocol", "protocol_factory"]
 HUB_SP = ws_server.Subprotocol("hub")
@@ -138,7 +138,7 @@ class WebsocketProtocol(Protocol):
         app.router.add_route('GET', '/hub_http_cfg', self._config_handler)
         app.router.add_route('POST', '/upload', self._upload_handler)
         app.router.add_route('POST', '/ota', self._ota_handler)
-        app.router.add_route('GET', self._kwargs.get('http_download_dir', '') + '/{path}', self._fs_handler)
+        app.router.add_route('GET', self._kwargs.get('http_download_dir', '') + '/{path:.*}', self._fs_handler)
 
         runner = web.AppRunner(app)
         await runner.setup()
@@ -163,7 +163,7 @@ class WebsocketProtocol(Protocol):
 
     async def _config_handler(self, _):
         config = dict(upload=self._kwargs.get('http_upload', True), download=self._kwargs.get('http_download', True),
-                      ota=self._kwargs.get('http_ota', True), path=self._kwargs.get('http_download_dir', ''))
+                      ota=self._kwargs.get('http_ota', True), path=self._kwargs.get('http_download_dir', '/'))
         return web.Response(text=json.dumps(config))
 
     async def _upload_handler(self, req: web.Request):
@@ -197,9 +197,22 @@ class WebsocketProtocol(Protocol):
 
         return web.Response(text='OK')
 
-    @staticmethod
-    async def _fs_handler(_: web.Request):
-        return web.Response(text='FAIL', status=404)
+    async def _fs_handler(self, req: web.Request):
+        path = '/' + req.match_info['path']
+
+        try:
+            data = await self._server.get_file_contents(path)
+        except FileNotExistsError:
+            return web.Response(status=404)
+        except FilePermissionsError:
+            return web.Response(status=403)
+        except GyverHubError:
+            return web.Response(status=400)
+
+        if data is None:
+            return web.Response(status=404)
+
+        return web.Response(body=data, status=404)
 
     async def _handle_ws(self, ws: ws_server.WebSocketServerProtocol):
         self._clients[ws.remote_address] = ws
